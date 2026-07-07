@@ -1,0 +1,409 @@
+<title>MargenVivo · Control de ventas y margen</title>
+<style>
+  :root{
+    --bg:#F5F7F9;--card:#FFFFFF;--ink:#0F172A;--ink2:#475569;--muted:#94A3B8;
+    --line:#E7ECF1;--line2:#D8E0E8;--primary:#0E9C8A;--primary-d:#0B7D6F;--primary-soft:#DDF3EF;
+    --good:#16A34A;--good-soft:#DCFCE7;--warn:#D97706;--warn-soft:#FEF0DC;--bad:#DC2626;--bad-soft:#FDE4E4;
+    --blue:#2563EB;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#0E1317;--card:#1A1F25;--ink:#E8EDF2;--ink2:#A9B4C0;--muted:#6B7885;
+    --line:#282F37;--line2:#333C46;--primary:#17A594;--primary-d:#12C2AC;--primary-soft:#123833;
+    --good:#22C55E;--good-soft:#0E2E1B;--warn:#E0A020;--warn-soft:#33280E;--bad:#F04444;--bad-soft:#331616;
+    --blue:#5B8DEF;
+  }}
+  :root[data-theme="light"]{
+    --bg:#F5F7F9;--card:#FFFFFF;--ink:#0F172A;--ink2:#475569;--muted:#94A3B8;
+    --line:#E7ECF1;--line2:#D8E0E8;--primary:#0E9C8A;--primary-d:#0B7D6F;--primary-soft:#DDF3EF;
+    --good:#16A34A;--good-soft:#DCFCE7;--warn:#D97706;--warn-soft:#FEF0DC;--bad:#DC2626;--bad-soft:#FDE4E4;--blue:#2563EB;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0E1317;--card:#1A1F25;--ink:#E8EDF2;--ink2:#A9B4C0;--muted:#6B7885;
+    --line:#282F37;--line2:#333C46;--primary:#17A594;--primary-d:#12C2AC;--primary-soft:#123833;
+    --good:#22C55E;--good-soft:#0E2E1B;--warn:#E0A020;--warn-soft:#33280E;--bad:#F04444;--bad-soft:#331616;--blue:#5B8DEF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .num{font-variant-numeric:tabular-nums}
+  button{font-family:inherit}
+  /* top bar */
+  .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--card);border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;letter-spacing:-.01em}
+  .brand .mk{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--primary),var(--primary-d));display:grid;place-items:center;color:#fff;font-weight:900;font-size:15px}
+  .brand span{color:var(--primary)}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--ink2)}
+  .rolechip{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:20px;background:var(--primary-soft);color:var(--primary-d)}
+  .btn{border:1px solid var(--line2);background:var(--card);color:var(--ink);border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s}
+  .btn:hover{background:var(--bg)}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  .btn.primary:hover{background:var(--primary-d)}
+  .btn.primary:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{border-color:transparent;background:transparent;color:var(--ink2)}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  .wrap{max-width:1000px;margin:0 auto;padding:26px 20px 80px}
+
+  h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0}
+  h2{font-size:15px;font-weight:700;margin:0}
+  .sub{color:var(--ink2);font-size:14px;margin:4px 0 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .label{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block;margin-bottom:5px}
+  input,select{width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--bg);color:var(--ink)}
+  input:focus,select:focus{outline:2px solid var(--primary);outline-offset:-1px;border-color:var(--primary)}
+
+  /* login */
+  .login-wrap{max-width:860px;margin:8vh auto 0;padding:0 20px}
+  .login-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
+  @media(max-width:680px){.login-grid{grid-template-columns:1fr}}
+  .login-card{display:flex;flex-direction:column;gap:12px}
+  .login-card .ic{width:44px;height:44px;border-radius:11px;display:grid;place-items:center}
+  .login-card.v .ic{background:var(--primary-soft);color:var(--primary-d)}
+  .login-card.a .ic{background:var(--warn-soft);color:var(--warn)}
+  .login-card h3{margin:0;font-size:18px;font-weight:800}
+  .login-card p{margin:0;color:var(--ink2);font-size:13.5px}
+  .hint{font-size:12px;color:var(--muted)}
+
+  /* forms row */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .field{display:flex;flex-direction:column}
+  .flow-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start}
+  @media(max-width:760px){.flow-cols{grid-template-columns:1fr}.grid2{grid-template-columns:1fr 1fr}}
+
+  /* live calc */
+  .live{background:var(--bg);border:1px dashed var(--line2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:9px;position:sticky;top:74px}
+  .live .lt{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .lrow{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--ink2)}
+  .lrow b{color:var(--ink);font-weight:700}
+  .lrow.big{font-size:16px;border-top:1px solid var(--line);padding-top:10px;margin-top:2px}
+  .mgnum{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .mgnum.good{color:var(--good)}.mgnum.warn{color:var(--warn)}.mgnum.bad{color:var(--bad)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:8px 11px;border-radius:9px}
+  .badge.good{background:var(--good-soft);color:var(--good)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.bad{background:var(--bad-soft);color:var(--bad)}
+  .empty-live{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+  thead th{background:var(--bg);text-align:right;padding:10px 12px;font-weight:700;color:var(--ink2);font-size:11px;letter-spacing:.03em;text-transform:uppercase;border-bottom:1px solid var(--line2);white-space:nowrap}
+  thead th:first-child,thead th:nth-child(2){text-align:left}
+  tbody td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line)}
+  tbody td:first-child,tbody td:nth-child(2){text-align:left}
+  tbody tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700}
+  .pill.good{background:var(--good-soft);color:var(--good)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
+
+  /* admin */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+  .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+  .kpi .kv{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:5px;line-height:1}
+  .kpi .kv.warn{color:var(--warn)}.kpi .kv.good{color:var(--good)}
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  @media(max-width:760px){.panels{grid-template-columns:1fr}}
+  .bars{display:flex;flex-direction:column;gap:11px;margin-top:14px}
+  .bar-row{display:grid;grid-template-columns:96px 1fr auto;align-items:center;gap:10px}
+  .bar-l{font-size:12.5px;color:var(--ink2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-t{background:var(--line);height:12px;border-radius:6px;overflow:hidden}
+  .bar-f{height:100%;border-radius:6px;background:var(--primary)}
+  .bar-f.good{background:var(--good)}.bar-f.warn{background:var(--warn)}.bar-f.bad{background:var(--bad)}
+  .bar-v{font-size:12.5px;font-weight:700;white-space:nowrap}
+  .insight{display:flex;gap:11px;align-items:flex-start;background:var(--primary-soft);border-radius:11px;padding:13px 15px;font-size:13.5px;line-height:1.45;color:var(--ink);margin-top:16px}
+  .insight .i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-weight:800;display:grid;place-items:center;font-size:13px}
+  .section-h{display:flex;align-items:center;gap:12px;margin:26px 0 12px}
+  .section-h h2{font-size:16px}
+  .section-h .muted{margin-left:auto;font-size:12.5px;color:var(--muted)}
+  .row-head{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:13px;color:var(--ink2)}
+  .chip b{color:var(--ink)}
+  .rank-badge{width:22px;height:22px;border-radius:50%;background:var(--line2);color:var(--ink);font-weight:800;font-size:11px;display:inline-grid;place-items:center;margin-right:2px}
+  .rank-badge.top{background:var(--primary);color:#fff}
+
+  /* toast */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:all .25s;background:var(--good);color:#fff;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .hidden{display:none!important}
+  .foot{max-width:1000px;margin:0 auto;padding:20px;color:var(--muted);font-size:12px;text-align:center}
+  .foot code{background:var(--card);padding:1px 6px;border-radius:5px;border:1px solid var(--line)}
+</style>
+
+<div class="topbar">
+  <div class="brand"><span class="mk">M</span>Margen<span>Vivo</span></div>
+  <div class="right" id="topRight"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginView" class="login-wrap">
+  <h1>Control de ventas y margen, en vivo</h1>
+  <p class="sub">La vendedora registra y ve su margen al instante. El administrador ve toda la semana en gráficos. Elige cómo entrar (demo):</p>
+  <div class="login-grid">
+    <div class="card login-card v">
+      <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+      <h3>Soy vendedora</h3>
+      <p>Registra ventas y controla que no bajes del piso de margen.</p>
+      <div class="field"><label class="label">Tu nombre</label><input id="vName" placeholder="Ej. Ana Torres" autocomplete="off"></div>
+      <button class="btn primary" onclick="loginVendedora()">Entrar como vendedora</button>
+    </div>
+    <div class="card login-card a">
+      <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+      <h3>Soy administrador</h3>
+      <p>Mira el resumen semanal, el ranking y dónde se gana o se pierde margen.</p>
+      <div class="field"><label class="label">Contraseña</label><input id="aPass" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')loginAdmin()"></div>
+      <button class="btn primary" onclick="loginAdmin()">Entrar como administrador</button>
+      <span class="hint">Demo: la contraseña es <b>admin123</b></span>
+    </div>
+  </div>
+</div>
+
+<!-- VENDEDORA -->
+<div id="vendView" class="wrap hidden">
+  <div class="row-head">
+    <div>
+      <h1 id="vGreet">Hola</h1>
+      <p class="sub">Registra una venta. El margen se calcula solo.</p>
+    </div>
+    <div class="chips" id="vChips" style="margin-left:auto"></div>
+  </div>
+  <div class="flow-cols">
+    <div class="card">
+      <h2>Nueva venta</h2>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
+        <div class="field"><label class="label">Cliente</label><input id="fCliente" placeholder="Nombre del cliente" autocomplete="off"></div>
+        <div class="field"><label class="label">Producto (SKU)</label>
+          <input id="fProd" list="prodlist" placeholder="Escribe o elige de la lista…" autocomplete="off" oninput="updateLive()">
+          <datalist id="prodlist"></datalist>
+        </div>
+        <div class="grid2">
+          <div class="field"><label class="label">Cantidad</label><input id="fCant" type="number" min="1" step="1" value="1" oninput="updateLive()"></div>
+          <div class="field"><label class="label">Precio venta (S/)</label><input id="fPrecio" type="number" min="0" step="0.01" placeholder="0.00" oninput="updateLive()"></div>
+        </div>
+        <button class="btn primary" id="btnSave" onclick="registrar()" disabled>Registrar venta</button>
+      </div>
+    </div>
+    <div class="live" id="liveBox"></div>
+  </div>
+
+  <div class="section-h"><h2>Mis ventas recientes</h2><span class="muted" id="vCount"></span></div>
+  <div class="tbl-wrap"><table id="vTable"><thead><tr><th>Hora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Margen</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminView" class="wrap hidden">
+  <div class="row-head">
+    <div><h1>Resumen semanal</h1><p class="sub" id="aSub">Todas las ventas de la semana</p></div>
+    <button class="btn sm ghost" style="margin-left:auto" onclick="resetDemo()">Reiniciar datos demo</button>
+  </div>
+  <div class="kpis" id="aKpis"></div>
+  <div class="panels">
+    <div class="card"><h2>Ranking de vendedoras</h2><div class="bars" id="aRank"></div></div>
+    <div class="card"><h2>Dónde se gana y dónde se margina menos</h2><p class="sub" style="margin:2px 0 0;font-size:12.5px">Margen por categoría</p><div class="bars" id="aCat"></div></div>
+  </div>
+  <div class="insight" id="aInsight"></div>
+  <div class="section-h"><h2>Todas las ventas</h2><span class="muted" id="aCount"></span></div>
+  <div class="tbl-wrap"><table id="aTable"><thead><tr><th>Fecha</th><th>Vendedora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Venta</th><th>Margen</th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<div class="foot" id="footNote"></div>
+<div id="toast"></div>
+
+<script>
+/* ===== Catálogo (inyectado desde el Excel real de la empresa) ===== */
+const PRODUCTS = [{"nombre":"BLANCO","cat":"OTROS","costo":145.14,"sku":"SKU001"},{"nombre":"NEGRO","cat":"ENTEROS","costo":237.96,"sku":"SKU002"},{"nombre":"NEVADO","cat":"ENTEROS","costo":237.96,"sku":"SKU003"},{"nombre":"GRIS","cat":"ENTEROS","costo":237.96,"sku":"SKU004"},{"nombre":"PLOMO","cat":"ENTEROS","costo":237.96,"sku":"SKU005"},{"nombre":"ROBLE BLANCO","cat":"ENTEROS","costo":237.96,"sku":"SKU006"},{"nombre":"ROBLE NEGRO","cat":"ENTEROS","costo":237.96,"sku":"SKU007"},{"nombre":"WENGUE","cat":"MADERAS","costo":249.23,"sku":"SKU008"},{"nombre":"CEDRO","cat":"MADERAS","costo":249.23,"sku":"SKU009"},{"nombre":"LINO","cat":"MADERAS","costo":249.23,"sku":"SKU010"},{"nombre":"ROBLE GRIS","cat":"MADERAS","costo":249.23,"sku":"SKU011"},{"nombre":"OLIVO","cat":"MADERAS","costo":249.23,"sku":"SKU012"},{"nombre":"CARAMELO","cat":"MADERAS","costo":249.23,"sku":"SKU013"},{"nombre":"ROVERE","cat":"MADERAS","costo":249.23,"sku":"SKU014"},{"nombre":"GALES","cat":"MADERAS","costo":249.23,"sku":"SKU015"},{"nombre":"CENIZA","cat":"MADERAS","costo":249.23,"sku":"SKU016"},{"nombre":"MANZANO","cat":"MADERAS","costo":249.23,"sku":"SKU017"},{"nombre":"ESPRESSO","cat":"MADERAS","costo":249.23,"sku":"SKU018"},{"nombre":"ARTIKO","cat":"MADERAS","costo":249.23,"sku":"SKU019"},{"nombre":"CAPRI","cat":"MADERAS","costo":249.23,"sku":"SKU020"},{"nombre":"MIEL","cat":"MADERAS","costo":249.23,"sku":"SKU021"},{"nombre":"CEMENTO","cat":"MADERAS","costo":249.23,"sku":"SKU022"},{"nombre":"TAUPE","cat":"MADERAS","costo":249.23,"sku":"SKU023"},{"nombre":"IBIZA","cat":"MADERAS","costo":249.23,"sku":"SKU024"},{"nombre":"HABANO","cat":"MADERAS","costo":249.23,"sku":"SKU025"},{"nombre":"COÑAC","cat":"MADERAS","costo":249.23,"sku":"SKU026"},{"nombre":"CARBON","cat":"MADERAS","costo":249.23,"sku":"SKU027"},{"nombre":"BOSQUE","cat":"MADERAS","costo":249.23,"sku":"SKU028"},{"nombre":"DUNA","cat":"MADERAS","costo":249.23,"sku":"SKU029"},{"nombre":"NIEBLA","cat":"MADERAS","costo":249.23,"sku":"SKU030"},{"nombre":"CASTAÑO","cat":"MADERAS","costo":249.23,"sku":"SKU031"},{"nombre":"NACAR","cat":"MADERAS","costo":249.23,"sku":"SKU032"},{"nombre":"MACADAMIA","cat":"MADERAS","costo":249.23,"sku":"SKU033"},{"nombre":"BELLOTA","cat":"MADERAS","costo":249.23,"sku":"SKU034"},{"nombre":"FUME","cat":"MADERAS","costo":249.23,"sku":"SKU035"},{"nombre":"MILAN","cat":"MADERAS","costo":249.23,"sku":"SKU036"},{"nombre":"TIVOLI","cat":"MADERAS","costo":249.23,"sku":"SKU037"},{"nombre":"NAZCA","cat":"MADERAS","costo":249.23,"sku":"SKU038"},{"nombre":"TOQUILLA","cat":"MADERAS","costo":249.23,"sku":"SKU039"},{"nombre":"AGAVE","cat":"MADERAS","costo":249.23,"sku":"SKU040"},{"nombre":"ARUPO","cat":"MADERAS","costo":249.23,"sku":"SKU041"},{"nombre":"BARDOLINO","cat":"MADERAS","costo":208.81,"sku":"SKU042"},{"nombre":"PANELA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU043"},{"nombre":"GALAPAGOS","cat":"COLECCIÓN","costo":208.81,"sku":"SKU044"},{"nombre":"MAMBA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU045"},{"nombre":"AVELLANA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU046"},{"nombre":"BURDEOS","cat":"COLECCIÓN","costo":208.81,"sku":"SKU047"},{"nombre":"AMBAR","cat":"COLECCIÓN","costo":208.81,"sku":"SKU048"},{"nombre":"INOX","cat":"COLECCIÓN","costo":208.81,"sku":"SKU049"},{"nombre":"CARTAGENA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU050"},{"nombre":"POSITANO","cat":"COLECCIÓN","costo":208.81,"sku":"SKU051"},{"nombre":"WENGUE/NEGRO","cat":"D/K","costo":191.1,"sku":"SKU052"},{"nombre":"BLANCO RH","cat":"D/K","costo":245.73,"sku":"SKU053"},{"nombre":"NEGRO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU054"},{"nombre":"NEVADO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU055"},{"nombre":"GRIS RH","cat":"ENTEROS","costo":277.03,"sku":"SKU056"},{"nombre":"PLOMO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU057"},{"nombre":"ROBLE BLANCO  RH","cat":"ENTEROS","costo":277.03,"sku":"SKU058"},{"nombre":"ROBLE NEGRO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU059"},{"nombre":"WENGUE RH","cat":"MADERAS","costo":287.7,"sku":"SKU060"},{"nombre":"CEDRO RH","cat":"MADERAS","costo":287.7,"sku":"SKU061"},{"nombre":"LINO RH","cat":"MADERAS","costo":287.7,"sku":"SKU062"},{"nombre":"ROBLE GRIS RH","cat":"MADERAS","costo":287.7,"sku":"SKU063"},{"nombre":"OLIVO  RH","cat":"MADERAS","costo":287.7,"sku":"SKU064"},{"nombre":"CARAMELO RH","cat":"MADERAS","costo":287.7,"sku":"SKU065"},{"nombre":"ROVERE RH","cat":"MADERAS","costo":287.7,"sku":"SKU066"},{"nombre":"GALES RH","cat":"MADERAS","costo":287.7,"sku":"SKU067"},{"nombre":"CENIZA RH","cat":"MADERAS","costo":287.7,"sku":"SKU068"},{"nombre":"MANZANO RH","cat":"MADERAS","costo":287.7,"sku":"SKU069"},{"nombre":"ESPRESSO RH","cat":"MADERAS","costo":287.7,"sku":"SKU070"},{"nombre":"ARTIKO RH","cat":"MADERAS","costo":287.7,"sku":"SKU071"},{"nombre":"CAPRI RH","cat":"MADERAS","costo":287.7,"sku":"SKU072"},{"nombre":"MIEL RH","cat":"MADERAS","costo":287.7,"sku":"SKU073"},{"nombre":"CEMENTO RH","cat":"MADERAS","costo":287.7,"sku":"SKU074"},{"nombre":"TAUPE RH","cat":"MADERAS","costo":287.7,"sku":"SKU075"},{"nombre":"IBIZA RH","cat":"MADERAS","costo":287.7,"sku":"SKU076"},{"nombre":"HABANO RH","cat":"MADERAS","costo":287.7,"sku":"SKU077"},{"nombre":"COÑAC RH","cat":"MADERAS","costo":287.7,"sku":"SKU078"},{"nombre":"CARBON RH","cat":"MADERAS","costo":287.7,"sku":"SKU079"},{"nombre":"BOSQUE RH","cat":"MADERAS","costo":287.7,"sku":"SKU080"},{"nombre":"DUNA RH","cat":"MADERAS","costo":287.7,"sku":"SKU081"},{"nombre":"NIEBLA RH","cat":"MADERAS","costo":287.7,"sku":"SKU082"},{"nombre":"CASTAÑO RH","cat":"MADERAS","costo":287.7,"sku":"SKU083"},{"nombre":"NACAR RH","cat":"MADERAS","costo":287.7,"sku":"SKU084"},{"nombre":"MACADAMIA RH","cat":"MADERAS","costo":287.7,"sku":"SKU085"},{"nombre":"BELLOTA RH","cat":"MADERAS","costo":287.7,"sku":"SKU086"},{"nombre":"FUME RH","cat":"MADERAS","costo":287.7,"sku":"SKU087"},{"nombre":"MILAN RH","cat":"MADERAS","costo":287.7,"sku":"SKU088"},{"nombre":"TIVOLI RH","cat":"MADERAS","costo":287.7,"sku":"SKU089"},{"nombre":"NAZCA RH","cat":"MADERAS","costo":287.7,"sku":"SKU090"},{"nombre":"TOQUILLA RH","cat":"MADERAS","costo":287.7,"sku":"SKU091"},{"nombre":"AGAVE RH","cat":"MADERAS","costo":287.7,"sku":"SKU092"},{"nombre":"ARUPO RH","cat":"MADERAS","costo":287.7,"sku":"SKU093"},{"nombre":"BARDOLINO RH","cat":"MADERAS","costo":287.7,"sku":"SKU094"},{"nombre":"PANELA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU095"},{"nombre":"GALAPAGOS RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU096"},{"nombre":"MAMBA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU097"},{"nombre":"AVELLANA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU098"},{"nombre":"BURDEOS RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU099"},{"nombre":"AMBAR RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU100"},{"nombre":"INOX RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU101"},{"nombre":"CARTAGENA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU102"},{"nombre":"POSITANO RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU103"},{"nombre":"WENGUE/NEGRO RH","cat":"D/K","costo":191.1,"sku":"SKU104"},{"nombre":"BLANCO PERFECT","cat":"BLANCO","costo":136.5,"sku":"SKU105"},{"nombre":"BLANCO PERFEC","cat":"BLANCO","costo":136.5,"sku":"SKU106"},{"nombre":"ACACIA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU107"},{"nombre":"ENTABLADO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU108"},{"nombre":"OLMO GRIS","cat":"COLECCIÓN","costo":201.71,"sku":"SKU109"},{"nombre":"FLORESTA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU110"},{"nombre":"DESIRAH","cat":"COLECCIÓN","costo":201.71,"sku":"SKU111"},{"nombre":"SAPELLY","cat":"COLECCIÓN","costo":201.71,"sku":"SKU112"},{"nombre":"SAPELLI","cat":"COLECCIÓN","costo":201.71,"sku":"SKU113"},{"nombre":"CUBOS","cat":"COLECCIÓN","costo":201.71,"sku":"SKU114"},{"nombre":"CORDOVA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU115"},{"nombre":"SILVER","cat":"COLECCIÓN","costo":201.71,"sku":"SKU116"},{"nombre":"ROBINIA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU117"},{"nombre":"CARBONO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU118"},{"nombre":"SORANO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU119"},{"nombre":"ROBLE AHUMADO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU120"},{"nombre":"LILA","cat":"ENTEROS","costo":204.92,"sku":"SKU121"},{"nombre":"AZUL","cat":"ENTEROS","costo":204.92,"sku":"SKU122"},{"nombre":"NARANJA","cat":"ENTEROS","costo":204.92,"sku":"SKU123"},{"nombre":"FUCSIA","cat":"ENTEROS","costo":204.92,"sku":"SKU124"},{"nombre":"ROJO","cat":"ENTEROS","costo":204.92,"sku":"SKU125"},{"nombre":"VERDE","cat":"ENTEROS","costo":204.92,"sku":"SKU126"},{"nombre":"ROSADO","cat":"ENTEROS","costo":204.92,"sku":"SKU127"},{"nombre":"NUEZ","cat":"CLASICOS","costo":217.0,"sku":"SKU128"},{"nombre":"MDF BLANCO","cat":"CLASICOS","costo":36.16,"sku":"SKU129"},{"nombre":"C.D.BLANCO","cat":"CLASICOS","costo":0.21,"sku":"SKU130"},{"nombre":"C.G.BLANCO","cat":"CLASICOS","costo":0.85,"sku":"SKU131"},{"nombre":"C.D.NEGRO","cat":"CLASICOS","costo":0.21,"sku":"SKU132"},{"nombre":"C.G.NEGRO","cat":"CLASICOS","costo":0.85,"sku":"SKU133"},{"nombre":"C.D.COLOR","cat":"CLASICOS","costo":0.3,"sku":"SKU134"},{"nombre":"C.G.COLOR","cat":"CLASICOS","costo":1.0,"sku":"SKU135"}];
+const BY_NAME = Object.fromEntries(PRODUCTS.map(p=>[p.nombre.toUpperCase(),p]));
+const FLOOR = 0.17;   // piso de margen sugerido 17%
+const ALERT = 0.15;   // alerta si baja de 15%
+
+/* ===== Capa de datos (localStorage hoy · Supabase mañana) ===== */
+const Store = {
+  K:'mv_ventas_v1',
+  all(){ try{return JSON.parse(localStorage.getItem(this.K))||[]}catch(e){return[]} },
+  save(list){ localStorage.setItem(this.K, JSON.stringify(list)); },
+  add(v){ const l=this.all(); l.push(v); this.save(l); },
+  reset(){ localStorage.removeItem(this.K); seedDemo(); },
+};
+const money = n => "S/ "+(n||0).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
+const money0 = n => "S/ "+Math.round(n||0).toLocaleString("es-PE");
+const kf = n => Math.abs(n)>=1000 ? "S/ "+(n/1000).toFixed(n>=10000?0:1)+"k" : money0(n);
+
+/* ===== Estado / sesión ===== */
+let USER = null; // {role:'vend'|'admin', name}
+function loginVendedora(){
+  const n=document.getElementById("vName").value.trim();
+  if(!n){document.getElementById("vName").focus();return;}
+  USER={role:'vend',name:n}; render();
+}
+function loginAdmin(){
+  const p=document.getElementById("aPass").value;
+  if(p!=="admin123"){toast("Contraseña incorrecta (demo: admin123)","bad");return;}
+  USER={role:'admin',name:'Administrador'}; render();
+}
+function logout(){ USER=null; render(); }
+
+function render(){
+  const login=document.getElementById("loginView"), vend=document.getElementById("vendView"), admin=document.getElementById("adminView");
+  [login,vend,admin].forEach(e=>e.classList.add("hidden"));
+  const right=document.getElementById("topRight");
+  if(!USER){ login.classList.remove("hidden"); right.innerHTML=""; return; }
+  right.innerHTML = `<span class="rolechip">${USER.role==='vend'?'Vendedora':'Administrador'}</span> ${USER.name} <button class="btn sm ghost" onclick="logout()">Salir</button>`;
+  if(USER.role==='vend'){ vend.classList.remove("hidden"); renderVend(); }
+  else { admin.classList.remove("hidden"); renderAdmin(); }
+}
+
+/* ===== Vendedora ===== */
+function currentProduct(){ const t=document.getElementById("fProd").value.trim().toUpperCase(); return BY_NAME[t]||null; }
+function updateLive(){
+  const p=currentProduct();
+  const cant=parseFloat(document.getElementById("fCant").value)||0;
+  const precio=parseFloat(document.getElementById("fPrecio").value)||0;
+  const box=document.getElementById("liveBox"), btn=document.getElementById("btnSave");
+  const cli=document.getElementById("fCliente").value.trim();
+  if(!p || precio<=0){
+    box.innerHTML=`<div class="empty-live">Elige un producto y pon el precio<br>para ver el margen.</div>`;
+    btn.disabled=true; return;
+  }
+  const margen=(precio-p.costo)/precio;
+  const piso=p.costo/(1-FLOOR);
+  const cls = margen<ALERT?'bad':(margen<FLOOR?'warn':'good');
+  const badge = margen<ALERT
+    ? `<div class="badge bad">⚠ Muy bajo — piso sugerido ${money(piso)} (17%)</div>`
+    : (margen<FLOOR
+      ? `<div class="badge warn">Cerca del piso — sugerido ${money(piso)}</div>`
+      : `<div class="badge good">✓ Buen margen</div>`);
+  box.innerHTML=`
+    <span class="lt">Cálculo automático</span>
+    <div class="lrow"><span>Costo unitario</span><b class="num">${money(p.costo)}</b></div>
+    <div class="lrow"><span>Tu precio</span><b class="num">${money(precio)}</b></div>
+    <div class="lrow"><span>Cantidad</span><b class="num">${cant||1}</b></div>
+    <div class="lrow big"><span>Margen</span><span class="mgnum ${cls}">${(margen*100).toFixed(1)}%</span></div>
+    <div class="lrow"><span>Utilidad total</span><b class="num">${money((precio-p.costo)*(cant||1))}</b></div>
+    ${badge}`;
+  btn.disabled = !(cli && p && cant>0 && precio>0);
+}
+function registrar(){
+  const p=currentProduct(); const cli=document.getElementById("fCliente").value.trim();
+  const cant=parseFloat(document.getElementById("fCant").value)||0;
+  const precio=parseFloat(document.getElementById("fPrecio").value)||0;
+  if(!p||!cli||cant<=0||precio<=0)return;
+  const venta=precio*cant, costoT=p.costo*cant, util=venta-costoT;
+  Store.add({ ts:Date.now(), vendedora:USER.name, cliente:cli, sku:p.sku, producto:p.nombre, cat:p.cat,
+    cant, precio, costo:p.costo, venta, costoT, util, margen:util/venta });
+  toast("Venta registrada ✓","good");
+  document.getElementById("fCliente").value=""; document.getElementById("fProd").value="";
+  document.getElementById("fCant").value="1"; document.getElementById("fPrecio").value="";
+  updateLive(); renderVend(); document.getElementById("fCliente").focus();
+}
+function renderVend(){
+  document.getElementById("vGreet").textContent="Hola, "+USER.name.split(" ")[0];
+  const mine=Store.all().filter(v=>v.vendedora===USER.name).sort((a,b)=>b.ts-a.ts);
+  const venta=mine.reduce((s,v)=>s+v.venta,0), util=mine.reduce((s,v)=>s+v.util,0);
+  const mg=venta?util/venta*100:0, low=mine.filter(v=>v.margen<ALERT).length;
+  document.getElementById("vChips").innerHTML=
+    `<div class="chip"><b>${mine.length}</b> ventas</div>`+
+    `<div class="chip"><b>${kf(venta)}</b> vendido</div>`+
+    `<div class="chip">margen <b>${mg.toFixed(1)}%</b></div>`+
+    (low?`<div class="chip" style="color:var(--bad)"><b>${low}</b> bajo piso</div>`:``);
+  document.getElementById("vCount").textContent=mine.length+" ventas";
+  const tb=document.querySelector("#vTable tbody");
+  tb.innerHTML = mine.slice(0,15).map(v=>{
+    const c=v.margen<ALERT?'bad':(v.margen<FLOOR?'warn':'good');
+    return `<tr><td>${hhmm(v.ts)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td><span class="pill ${c}">${(v.margen*100).toFixed(1)}%</span></td></tr>`;
+  }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Aún no registras ventas.</td></tr>`;
+  buildDatalist();
+}
+function buildDatalist(){
+  const dl=document.getElementById("prodlist");
+  if(dl.children.length) return;
+  dl.innerHTML = PRODUCTS.map(p=>`<option value="${esc(p.nombre)}">${esc(p.cat)} · costo ${money(p.costo)}</option>`).join("");
+}
+
+/* ===== Administrador ===== */
+function renderAdmin(){
+  const all=Store.all();
+  const venta=all.reduce((s,v)=>s+v.venta,0), util=all.reduce((s,v)=>s+v.util,0);
+  const mg=venta?util/venta*100:0, low=all.filter(v=>v.margen<ALERT).length;
+  document.getElementById("aSub").textContent = `${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
+  document.getElementById("aKpis").innerHTML=[
+    {kl:"Venta",kv:kf(venta)},{kl:"Utilidad",kv:kf(util),c:"good"},
+    {kl:"Margen",kv:mg.toFixed(1)+"%"},{kl:"# Ventas",kv:all.length},
+    {kl:"Bajo piso",kv:low,c:low?"warn":""},
+  ].map(k=>`<div class="kpi"><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
+
+  // ranking vendedoras
+  const bySeller={};
+  all.forEach(v=>{ (bySeller[v.vendedora]=bySeller[v.vendedora]||{venta:0,util:0,low:0}); bySeller[v.vendedora].venta+=v.venta; bySeller[v.vendedora].util+=v.util; if(v.margen<ALERT)bySeller[v.vendedora].low++; });
+  const sellers=Object.entries(bySeller).map(([n,d])=>({n,...d,mg:d.venta?d.util/d.venta*100:0})).sort((a,b)=>b.venta-a.venta);
+  const maxV=Math.max(1,...sellers.map(s=>s.venta));
+  document.getElementById("aRank").innerHTML = sellers.map((s,i)=>
+    `<div class="bar-row"><span class="bar-l"><span class="rank-badge ${i===0?'top':''}">${i+1}</span>${esc(s.n)}</span>`+
+    `<span class="bar-t"><span class="bar-f" style="width:${Math.max(6,s.venta/maxV*100)}%"></span></span>`+
+    `<span class="bar-v num">${kf(s.venta)} · ${s.mg.toFixed(0)}%</span></div>`).join("") || emptyMsg();
+
+  // margen por categoría
+  const byCat={};
+  all.forEach(v=>{ (byCat[v.cat]=byCat[v.cat]||{venta:0,util:0}); byCat[v.cat].venta+=v.venta; byCat[v.cat].util+=v.util; });
+  const cats=Object.entries(byCat).map(([n,d])=>({n,mg:d.venta?d.util/d.venta*100:0,venta:d.venta})).sort((a,b)=>b.mg-a.mg);
+  const maxM=Math.max(1,...cats.map(c=>c.mg));
+  document.getElementById("aCat").innerHTML = cats.map(c=>{
+    const cls=c.mg>=FLOOR*100?'good':(c.mg>=ALERT*100?'warn':'bad');
+    return `<div class="bar-row"><span class="bar-l">${esc(c.n)}</span>`+
+    `<span class="bar-t"><span class="bar-f ${cls}" style="width:${Math.max(6,c.mg/maxM*100)}%"></span></span>`+
+    `<span class="bar-v num">${c.mg.toFixed(1)}%</span></div>`;
+  }).join("") || emptyMsg();
+
+  // insight
+  const top=sellers[0], worstCat=cats[cats.length-1], bestCat=cats[0];
+  document.getElementById("aInsight").innerHTML = all.length
+    ? `<span class="i">!</span><div><b>${esc(top.n)}</b> lidera con ${kf(top.venta)}. La categoría más rentable es <b>${esc(bestCat.n)}</b> (${bestCat.mg.toFixed(0)}%) y la que menos deja es <b>${esc(worstCat.n)}</b> (${worstCat.mg.toFixed(0)}%). ${low?`<b>${low} ventas</b> cerraron bajo el piso de 15% → revisar precios.`:`Ninguna venta bajó del piso. 👌`}</div>`
+    : `<span class="i">!</span><div>Aún no hay ventas registradas. Entra como <b>vendedora</b> y registra algunas para ver el análisis.</div>`;
+
+  document.getElementById("aCount").textContent=all.length+" ventas";
+  const tb=document.querySelector("#aTable tbody");
+  tb.innerHTML = all.sort((a,b)=>b.ts-a.ts).slice(0,40).map(v=>{
+    const c=v.margen<ALERT?'bad':(v.margen<FLOOR?'warn':'good');
+    return `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${c}">${(v.margen*100).toFixed(1)}%</span></td></tr>`;
+  }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Sin ventas.</td></tr>`;
+}
+function emptyMsg(){return `<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin datos todavía.</div>`;}
+function uniqueSellers(a){return [...new Set(a.map(v=>v.vendedora))];}
+
+/* ===== utils ===== */
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function pad(n){return n<10?'0'+n:n;}
+function hhmm(ts){const d=new Date(ts);return pad(d.getHours())+":"+pad(d.getMinutes());}
+function ddmm(ts){const d=new Date(ts);return pad(d.getDate())+"/"+pad(d.getMonth()+1);}
+let toastT;
+function toast(msg,kind){const t=document.getElementById("toast");t.textContent=msg;t.style.background=kind==='bad'?'var(--bad)':'var(--good)';t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200);}
+function resetDemo(){ Store.reset(); render(); toast("Datos demo reiniciados","good"); }
+
+/* ===== Semilla demo (para que el panel no arranque vacío) ===== */
+function seedDemo(){
+  if(Store.all().length) return;
+  const pick=n=>PRODUCTS.find(p=>p.nombre===n)||PRODUCTS[0];
+  const sellers=["Ana Torres","Rosa Díaz","Lucía Vega"];
+  const rows=[
+    ["Ana Torres","Mueblería San José","BLANCO PERFECT",8,175],
+    ["Ana Torres","Carpintería Luna","BLANCO",5,190],
+    ["Ana Torres","Distribuidora Nor","C.D.BLANCO",120,0.55],
+    ["Ana Torres","Mueblería San José","MDF BLANCO",10,52],
+    ["Rosa Díaz","Muebles El Roble","BLANCO PERFECT",6,168],
+    ["Rosa Díaz","Carpintería Vega","NIEBLA",4,235],
+    ["Rosa Díaz","Cliente mostrador","ACACIA",3,280],
+    ["Rosa Díaz","Muebles El Roble","BLANCO",4,178],
+    ["Lucía Vega","Decoraciones Sur","WENGUE",5,300],
+    ["Lucía Vega","Mueblería Central","POSITANO",3,265],
+    ["Lucía Vega","Cliente mostrador","C.G.BLANCO",40,1.4],
+    ["Marta Ruiz","Carpintería Luna","MDF BLANCO",12,45],
+    ["Marta Ruiz","Muebles Perú","ACACIA",4,255],
+    ["Marta Ruiz","Cliente mostrador","BLANCO",6,168],
+  ];
+  const now=Date.now();
+  rows.forEach((r,i)=>{
+    const p=pick(r[2]); const cant=r[3], precio=r[4];
+    const venta=precio*cant, costoT=p.costo*cant, util=venta-costoT;
+    Store.add({ ts: now - (rows.length-i)*3600*1000*4, vendedora:r[0], cliente:r[1], sku:p.sku, producto:p.nombre, cat:p.cat, cant, precio, costo:p.costo, venta, costoT, util, margen:util/venta });
+  });
+}
+document.getElementById("footNote").innerHTML = `Prototipo <b>MargenVivo</b> · ${PRODUCTS.length} productos cargados · los datos se guardan en <code>este navegador</code> (demo). Para multiusuario en la nube: conectar a Supabase.`;
+seedDemo();
+render();
+</script>
