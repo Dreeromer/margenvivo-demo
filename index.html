@@ -78,11 +78,15 @@
   .mgnum.good{color:var(--good)}.mgnum.warn{color:var(--warn)}.mgnum.bad{color:var(--bad)}
   .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:8px 11px;border-radius:9px}
   .badge.good{background:var(--good-soft);color:var(--good)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.bad{background:var(--bad-soft);color:var(--bad)}
-  .empty-live{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
+  .empty-live{color:var(--muted);font-size:13px;text-align:center;padding:14px 0}
+  .sug{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--primary-soft);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--ink)}
+  .sug b{color:var(--primary-d)}
+  .sug button{border:none;background:var(--primary);color:#fff;border-radius:7px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer}
+  .sug button:hover{background:var(--primary-d)}
 
   /* table */
   .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
-  table{border-collapse:collapse;width:100%;font-size:13px;min-width:520px}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
   thead th{background:var(--bg);text-align:right;padding:10px 12px;font-weight:700;color:var(--ink2);font-size:11px;letter-spacing:.03em;text-transform:uppercase;border-bottom:1px solid var(--line2);white-space:nowrap}
   thead th:first-child,thead th:nth-child(2){text-align:left}
   tbody td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line)}
@@ -90,8 +94,13 @@
   tbody tr:last-child td{border-bottom:none}
   .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700}
   .pill.good{background:var(--good-soft);color:var(--good)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}
+  .act-cell{white-space:nowrap;text-align:right !important}
+  .icon-btn{border:none;background:transparent;cursor:pointer;color:var(--muted);padding:4px 6px;border-radius:6px;font-size:14px;line-height:1}
+  .icon-btn:hover{background:var(--bg);color:var(--ink)}
 
   /* admin */
+  .toolbar{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+  .toolbar select{width:auto;padding:7px 11px;font-size:13px}
   .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
   @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
@@ -107,6 +116,12 @@
   .bar-f{height:100%;border-radius:6px;background:var(--primary)}
   .bar-f.good{background:var(--good)}.bar-f.warn{background:var(--warn)}.bar-f.bad{background:var(--bad)}
   .bar-v{font-size:12.5px;font-weight:700;white-space:nowrap}
+  .daybars{display:flex;align-items:flex-end;gap:8px;height:130px;margin-top:16px}
+  .daycol{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+  .daycol .dv{font-size:10.5px;color:var(--ink2);font-weight:700;white-space:nowrap}
+  .daycol .db{width:78%;max-width:34px;background:var(--primary);border-radius:6px 6px 0 0;min-height:3px;margin-top:auto;transition:height .2s}
+  .daycol.today .db{background:var(--primary-d)}
+  .daycol .dl{font-size:11px;color:var(--muted);font-weight:600}
   .insight{display:flex;gap:11px;align-items:flex-start;background:var(--primary-soft);border-radius:11px;padding:13px 15px;font-size:13.5px;line-height:1.45;color:var(--ink);margin-top:16px}
   .insight .i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-weight:800;display:grid;place-items:center;font-size:13px}
   .section-h{display:flex;align-items:center;gap:12px;margin:26px 0 12px}
@@ -119,9 +134,22 @@
   .rank-badge{width:22px;height:22px;border-radius:50%;background:var(--line2);color:var(--ink);font-weight:800;font-size:11px;display:inline-grid;place-items:center;margin-right:2px}
   .rank-badge.top{background:var(--primary);color:#fff}
 
+  /* settings modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:60;padding:20px}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:470px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:90vh;overflow:auto}
+  .modal h2{font-size:18px}
+  .cfg-sec{margin-top:16px}
+  .cfg-sec .st{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .cfg-sec .st .tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 7px;border-radius:6px;background:var(--bg);color:var(--muted)}
+  .cfg-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .switch{display:flex;align-items:center;gap:10px;margin-top:18px;font-size:13.5px;color:var(--ink2)}
+  .switch input{width:auto}
+  .modal .m-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+
   /* toast */
-  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:all .25s;background:var(--good);color:#fff;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;z-index:50;box-shadow:0 8px 30px rgba(0,0,0,.2)}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:all .25s;background:var(--good);color:#fff;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;z-index:70;box-shadow:0 8px 30px rgba(0,0,0,.2);display:flex;align-items:center;gap:14px}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .tundo{text-decoration:underline;cursor:pointer;font-weight:800}
   .hidden{display:none!important}
   .foot{max-width:1000px;margin:0 auto;padding:20px;color:var(--muted);font-size:12px;text-align:center}
   .foot code{background:var(--card);padding:1px 6px;border-radius:5px;border:1px solid var(--line)}
@@ -141,7 +169,7 @@
       <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
       <h3>Soy vendedora</h3>
       <p>Registra ventas y controla que no bajes del piso de margen.</p>
-      <div class="field"><label class="label">Tu nombre</label><input id="vName" placeholder="Ej. Ana Torres" autocomplete="off"></div>
+      <div class="field"><label class="label">Tu nombre</label><input id="vName" placeholder="Ej. Ana Torres" autocomplete="off" onkeydown="if(event.key==='Enter')loginVendedora()"></div>
       <button class="btn primary" onclick="loginVendedora()">Entrar como vendedora</button>
     </div>
     <div class="card login-card a">
@@ -166,7 +194,7 @@
   </div>
   <div class="flow-cols">
     <div class="card">
-      <h2>Nueva venta</h2>
+      <h2 id="vFormTitle">Nueva venta</h2>
       <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
         <div class="field"><label class="label">Cliente</label><input id="fCliente" placeholder="Nombre del cliente" autocomplete="off"></div>
         <div class="field"><label class="label">Producto (SKU)</label>
@@ -184,23 +212,61 @@
   </div>
 
   <div class="section-h"><h2>Mis ventas recientes</h2><span class="muted" id="vCount"></span></div>
-  <div class="tbl-wrap"><table id="vTable"><thead><tr><th>Hora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Margen</th></tr></thead><tbody></tbody></table></div>
+  <div class="tbl-wrap"><table id="vTable"><thead><tr><th>Hora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Margen</th><th></th></tr></thead><tbody></tbody></table></div>
 </div>
 
 <!-- ADMIN -->
 <div id="adminView" class="wrap hidden">
   <div class="row-head">
     <div><h1>Resumen semanal</h1><p class="sub" id="aSub">Todas las ventas de la semana</p></div>
-    <button class="btn sm ghost" style="margin-left:auto" onclick="resetDemo()">Reiniciar datos demo</button>
+    <div class="toolbar">
+      <select id="weekSel" onchange="onWeekChange(this.value)"></select>
+      <button class="btn sm" onclick="exportCSV()">⬇ Exportar</button>
+      <button class="btn sm" onclick="openSettings()">⚙ Ajustes</button>
+      <button class="btn sm ghost" onclick="resetDemo()">Reiniciar demo</button>
+    </div>
   </div>
   <div class="kpis" id="aKpis"></div>
   <div class="panels">
     <div class="card"><h2>Ranking de vendedoras</h2><div class="bars" id="aRank"></div></div>
     <div class="card"><h2>Dónde se gana y dónde se margina menos</h2><p class="sub" style="margin:2px 0 0;font-size:12.5px">Margen por categoría</p><div class="bars" id="aCat"></div></div>
   </div>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h2>Ventas por día</h2><span class="sub" id="dayWeekLbl" style="font-size:12.5px"></span></div>
+    <div class="daybars" id="daybars"></div>
+  </div>
   <div class="insight" id="aInsight"></div>
   <div class="section-h"><h2>Todas las ventas</h2><span class="muted" id="aCount"></span></div>
-  <div class="tbl-wrap"><table id="aTable"><thead><tr><th>Fecha</th><th>Vendedora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Venta</th><th>Margen</th></tr></thead><tbody></tbody></table></div>
+  <div class="tbl-wrap"><table id="aTable"><thead><tr><th>Fecha</th><th>Vendedora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Venta</th><th>Margen</th><th></th></tr></thead><tbody></tbody></table></div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="overlay hidden">
+  <div class="modal">
+    <h2>Ajustes de margen</h2>
+    <p class="sub" style="margin:4px 0 0;font-size:13px">Planchas y cantos rinden muy distinto. Define el piso, la alerta y la meta de cada tipo.</p>
+    <div class="cfg-sec">
+      <div class="st">Planchas <span class="tag">margen bajo</span></div>
+      <div class="cfg-grid">
+        <div class="field"><label class="label">Piso %</label><input id="pl_floor" type="number" min="0" max="99" step="1"></div>
+        <div class="field"><label class="label">Alerta %</label><input id="pl_alert" type="number" min="0" max="99" step="1"></div>
+        <div class="field"><label class="label">Meta %</label><input id="pl_meta" type="number" min="0" max="99" step="1"></div>
+      </div>
+    </div>
+    <div class="cfg-sec">
+      <div class="st">Cantos <span class="tag">margen alto</span></div>
+      <div class="cfg-grid">
+        <div class="field"><label class="label">Piso %</label><input id="ca_floor" type="number" min="0" max="99" step="1"></div>
+        <div class="field"><label class="label">Alerta %</label><input id="ca_alert" type="number" min="0" max="99" step="1"></div>
+        <div class="field"><label class="label">Meta %</label><input id="ca_meta" type="number" min="0" max="99" step="1"></div>
+      </div>
+    </div>
+    <label class="switch"><input type="checkbox" id="cf_hideCost"> Ocultar el costo a la vendedora (solo ve el % de margen)</label>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeSettings()">Cancelar</button>
+      <button class="btn primary" onclick="saveSettings()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <div class="foot" id="footNote"></div>
@@ -209,9 +275,26 @@
 <script>
 /* ===== Catálogo (inyectado desde el Excel real de la empresa) ===== */
 const PRODUCTS = [{"nombre":"BLANCO","cat":"OTROS","costo":145.14,"sku":"SKU001"},{"nombre":"NEGRO","cat":"ENTEROS","costo":237.96,"sku":"SKU002"},{"nombre":"NEVADO","cat":"ENTEROS","costo":237.96,"sku":"SKU003"},{"nombre":"GRIS","cat":"ENTEROS","costo":237.96,"sku":"SKU004"},{"nombre":"PLOMO","cat":"ENTEROS","costo":237.96,"sku":"SKU005"},{"nombre":"ROBLE BLANCO","cat":"ENTEROS","costo":237.96,"sku":"SKU006"},{"nombre":"ROBLE NEGRO","cat":"ENTEROS","costo":237.96,"sku":"SKU007"},{"nombre":"WENGUE","cat":"MADERAS","costo":249.23,"sku":"SKU008"},{"nombre":"CEDRO","cat":"MADERAS","costo":249.23,"sku":"SKU009"},{"nombre":"LINO","cat":"MADERAS","costo":249.23,"sku":"SKU010"},{"nombre":"ROBLE GRIS","cat":"MADERAS","costo":249.23,"sku":"SKU011"},{"nombre":"OLIVO","cat":"MADERAS","costo":249.23,"sku":"SKU012"},{"nombre":"CARAMELO","cat":"MADERAS","costo":249.23,"sku":"SKU013"},{"nombre":"ROVERE","cat":"MADERAS","costo":249.23,"sku":"SKU014"},{"nombre":"GALES","cat":"MADERAS","costo":249.23,"sku":"SKU015"},{"nombre":"CENIZA","cat":"MADERAS","costo":249.23,"sku":"SKU016"},{"nombre":"MANZANO","cat":"MADERAS","costo":249.23,"sku":"SKU017"},{"nombre":"ESPRESSO","cat":"MADERAS","costo":249.23,"sku":"SKU018"},{"nombre":"ARTIKO","cat":"MADERAS","costo":249.23,"sku":"SKU019"},{"nombre":"CAPRI","cat":"MADERAS","costo":249.23,"sku":"SKU020"},{"nombre":"MIEL","cat":"MADERAS","costo":249.23,"sku":"SKU021"},{"nombre":"CEMENTO","cat":"MADERAS","costo":249.23,"sku":"SKU022"},{"nombre":"TAUPE","cat":"MADERAS","costo":249.23,"sku":"SKU023"},{"nombre":"IBIZA","cat":"MADERAS","costo":249.23,"sku":"SKU024"},{"nombre":"HABANO","cat":"MADERAS","costo":249.23,"sku":"SKU025"},{"nombre":"COÑAC","cat":"MADERAS","costo":249.23,"sku":"SKU026"},{"nombre":"CARBON","cat":"MADERAS","costo":249.23,"sku":"SKU027"},{"nombre":"BOSQUE","cat":"MADERAS","costo":249.23,"sku":"SKU028"},{"nombre":"DUNA","cat":"MADERAS","costo":249.23,"sku":"SKU029"},{"nombre":"NIEBLA","cat":"MADERAS","costo":249.23,"sku":"SKU030"},{"nombre":"CASTAÑO","cat":"MADERAS","costo":249.23,"sku":"SKU031"},{"nombre":"NACAR","cat":"MADERAS","costo":249.23,"sku":"SKU032"},{"nombre":"MACADAMIA","cat":"MADERAS","costo":249.23,"sku":"SKU033"},{"nombre":"BELLOTA","cat":"MADERAS","costo":249.23,"sku":"SKU034"},{"nombre":"FUME","cat":"MADERAS","costo":249.23,"sku":"SKU035"},{"nombre":"MILAN","cat":"MADERAS","costo":249.23,"sku":"SKU036"},{"nombre":"TIVOLI","cat":"MADERAS","costo":249.23,"sku":"SKU037"},{"nombre":"NAZCA","cat":"MADERAS","costo":249.23,"sku":"SKU038"},{"nombre":"TOQUILLA","cat":"MADERAS","costo":249.23,"sku":"SKU039"},{"nombre":"AGAVE","cat":"MADERAS","costo":249.23,"sku":"SKU040"},{"nombre":"ARUPO","cat":"MADERAS","costo":249.23,"sku":"SKU041"},{"nombre":"BARDOLINO","cat":"MADERAS","costo":208.81,"sku":"SKU042"},{"nombre":"PANELA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU043"},{"nombre":"GALAPAGOS","cat":"COLECCIÓN","costo":208.81,"sku":"SKU044"},{"nombre":"MAMBA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU045"},{"nombre":"AVELLANA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU046"},{"nombre":"BURDEOS","cat":"COLECCIÓN","costo":208.81,"sku":"SKU047"},{"nombre":"AMBAR","cat":"COLECCIÓN","costo":208.81,"sku":"SKU048"},{"nombre":"INOX","cat":"COLECCIÓN","costo":208.81,"sku":"SKU049"},{"nombre":"CARTAGENA","cat":"COLECCIÓN","costo":208.81,"sku":"SKU050"},{"nombre":"POSITANO","cat":"COLECCIÓN","costo":208.81,"sku":"SKU051"},{"nombre":"WENGUE/NEGRO","cat":"D/K","costo":191.1,"sku":"SKU052"},{"nombre":"BLANCO RH","cat":"D/K","costo":245.73,"sku":"SKU053"},{"nombre":"NEGRO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU054"},{"nombre":"NEVADO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU055"},{"nombre":"GRIS RH","cat":"ENTEROS","costo":277.03,"sku":"SKU056"},{"nombre":"PLOMO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU057"},{"nombre":"ROBLE BLANCO  RH","cat":"ENTEROS","costo":277.03,"sku":"SKU058"},{"nombre":"ROBLE NEGRO RH","cat":"ENTEROS","costo":277.03,"sku":"SKU059"},{"nombre":"WENGUE RH","cat":"MADERAS","costo":287.7,"sku":"SKU060"},{"nombre":"CEDRO RH","cat":"MADERAS","costo":287.7,"sku":"SKU061"},{"nombre":"LINO RH","cat":"MADERAS","costo":287.7,"sku":"SKU062"},{"nombre":"ROBLE GRIS RH","cat":"MADERAS","costo":287.7,"sku":"SKU063"},{"nombre":"OLIVO  RH","cat":"MADERAS","costo":287.7,"sku":"SKU064"},{"nombre":"CARAMELO RH","cat":"MADERAS","costo":287.7,"sku":"SKU065"},{"nombre":"ROVERE RH","cat":"MADERAS","costo":287.7,"sku":"SKU066"},{"nombre":"GALES RH","cat":"MADERAS","costo":287.7,"sku":"SKU067"},{"nombre":"CENIZA RH","cat":"MADERAS","costo":287.7,"sku":"SKU068"},{"nombre":"MANZANO RH","cat":"MADERAS","costo":287.7,"sku":"SKU069"},{"nombre":"ESPRESSO RH","cat":"MADERAS","costo":287.7,"sku":"SKU070"},{"nombre":"ARTIKO RH","cat":"MADERAS","costo":287.7,"sku":"SKU071"},{"nombre":"CAPRI RH","cat":"MADERAS","costo":287.7,"sku":"SKU072"},{"nombre":"MIEL RH","cat":"MADERAS","costo":287.7,"sku":"SKU073"},{"nombre":"CEMENTO RH","cat":"MADERAS","costo":287.7,"sku":"SKU074"},{"nombre":"TAUPE RH","cat":"MADERAS","costo":287.7,"sku":"SKU075"},{"nombre":"IBIZA RH","cat":"MADERAS","costo":287.7,"sku":"SKU076"},{"nombre":"HABANO RH","cat":"MADERAS","costo":287.7,"sku":"SKU077"},{"nombre":"COÑAC RH","cat":"MADERAS","costo":287.7,"sku":"SKU078"},{"nombre":"CARBON RH","cat":"MADERAS","costo":287.7,"sku":"SKU079"},{"nombre":"BOSQUE RH","cat":"MADERAS","costo":287.7,"sku":"SKU080"},{"nombre":"DUNA RH","cat":"MADERAS","costo":287.7,"sku":"SKU081"},{"nombre":"NIEBLA RH","cat":"MADERAS","costo":287.7,"sku":"SKU082"},{"nombre":"CASTAÑO RH","cat":"MADERAS","costo":287.7,"sku":"SKU083"},{"nombre":"NACAR RH","cat":"MADERAS","costo":287.7,"sku":"SKU084"},{"nombre":"MACADAMIA RH","cat":"MADERAS","costo":287.7,"sku":"SKU085"},{"nombre":"BELLOTA RH","cat":"MADERAS","costo":287.7,"sku":"SKU086"},{"nombre":"FUME RH","cat":"MADERAS","costo":287.7,"sku":"SKU087"},{"nombre":"MILAN RH","cat":"MADERAS","costo":287.7,"sku":"SKU088"},{"nombre":"TIVOLI RH","cat":"MADERAS","costo":287.7,"sku":"SKU089"},{"nombre":"NAZCA RH","cat":"MADERAS","costo":287.7,"sku":"SKU090"},{"nombre":"TOQUILLA RH","cat":"MADERAS","costo":287.7,"sku":"SKU091"},{"nombre":"AGAVE RH","cat":"MADERAS","costo":287.7,"sku":"SKU092"},{"nombre":"ARUPO RH","cat":"MADERAS","costo":287.7,"sku":"SKU093"},{"nombre":"BARDOLINO RH","cat":"MADERAS","costo":287.7,"sku":"SKU094"},{"nombre":"PANELA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU095"},{"nombre":"GALAPAGOS RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU096"},{"nombre":"MAMBA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU097"},{"nombre":"AVELLANA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU098"},{"nombre":"BURDEOS RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU099"},{"nombre":"AMBAR RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU100"},{"nombre":"INOX RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU101"},{"nombre":"CARTAGENA RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU102"},{"nombre":"POSITANO RH","cat":"COLECCIÓN","costo":253.75,"sku":"SKU103"},{"nombre":"WENGUE/NEGRO RH","cat":"D/K","costo":191.1,"sku":"SKU104"},{"nombre":"BLANCO PERFECT","cat":"BLANCO","costo":136.5,"sku":"SKU105"},{"nombre":"BLANCO PERFEC","cat":"BLANCO","costo":136.5,"sku":"SKU106"},{"nombre":"ACACIA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU107"},{"nombre":"ENTABLADO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU108"},{"nombre":"OLMO GRIS","cat":"COLECCIÓN","costo":201.71,"sku":"SKU109"},{"nombre":"FLORESTA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU110"},{"nombre":"DESIRAH","cat":"COLECCIÓN","costo":201.71,"sku":"SKU111"},{"nombre":"SAPELLY","cat":"COLECCIÓN","costo":201.71,"sku":"SKU112"},{"nombre":"SAPELLI","cat":"COLECCIÓN","costo":201.71,"sku":"SKU113"},{"nombre":"CUBOS","cat":"COLECCIÓN","costo":201.71,"sku":"SKU114"},{"nombre":"CORDOVA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU115"},{"nombre":"SILVER","cat":"COLECCIÓN","costo":201.71,"sku":"SKU116"},{"nombre":"ROBINIA","cat":"COLECCIÓN","costo":201.71,"sku":"SKU117"},{"nombre":"CARBONO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU118"},{"nombre":"SORANO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU119"},{"nombre":"ROBLE AHUMADO","cat":"COLECCIÓN","costo":201.71,"sku":"SKU120"},{"nombre":"LILA","cat":"ENTEROS","costo":204.92,"sku":"SKU121"},{"nombre":"AZUL","cat":"ENTEROS","costo":204.92,"sku":"SKU122"},{"nombre":"NARANJA","cat":"ENTEROS","costo":204.92,"sku":"SKU123"},{"nombre":"FUCSIA","cat":"ENTEROS","costo":204.92,"sku":"SKU124"},{"nombre":"ROJO","cat":"ENTEROS","costo":204.92,"sku":"SKU125"},{"nombre":"VERDE","cat":"ENTEROS","costo":204.92,"sku":"SKU126"},{"nombre":"ROSADO","cat":"ENTEROS","costo":204.92,"sku":"SKU127"},{"nombre":"NUEZ","cat":"CLASICOS","costo":217.0,"sku":"SKU128"},{"nombre":"MDF BLANCO","cat":"CLASICOS","costo":36.16,"sku":"SKU129"},{"nombre":"C.D.BLANCO","cat":"CLASICOS","costo":0.21,"sku":"SKU130"},{"nombre":"C.G.BLANCO","cat":"CLASICOS","costo":0.85,"sku":"SKU131"},{"nombre":"C.D.NEGRO","cat":"CLASICOS","costo":0.21,"sku":"SKU132"},{"nombre":"C.G.NEGRO","cat":"CLASICOS","costo":0.85,"sku":"SKU133"},{"nombre":"C.D.COLOR","cat":"CLASICOS","costo":0.3,"sku":"SKU134"},{"nombre":"C.G.COLOR","cat":"CLASICOS","costo":1.0,"sku":"SKU135"}];
+PRODUCTS.forEach(p=>p.tipo = p.costo < 5 ? 'canto' : 'plancha');   // cantos = costo unitario muy bajo (por metro)
 const BY_NAME = Object.fromEntries(PRODUCTS.map(p=>[p.nombre.toUpperCase(),p]));
-const FLOOR = 0.17;   // piso de margen sugerido 17%
-const ALERT = 0.15;   // alerta si baja de 15%
+
+/* ===== Config de márgenes (editable por el admin · persistida) ===== */
+const CFG_K='mv_cfg_v1';
+const DEFAULT_CFG = {
+  floors:{ plancha:{floor:0.12, alert:0.10}, canto:{floor:0.40, alert:0.30} },
+  meta:{ plancha:0.16, canto:0.55 },
+  hideCost:false
+};
+function loadCfg(){
+  const d=JSON.parse(JSON.stringify(DEFAULT_CFG));
+  try{ const s=JSON.parse(localStorage.getItem(CFG_K)); if(s){ if(s.floors)d.floors=s.floors; if(s.meta)d.meta=s.meta; if(typeof s.hideCost==='boolean')d.hideCost=s.hideCost; } }catch(e){}
+  return d;
+}
+let CFG = loadCfg();
+const tipoOf = v => v.tipo || (v.costo<5?'canto':'plancha');
+const floorsOf = v => CFG.floors[tipoOf(v)];
+function mgCls(v){ const f=floorsOf(v); return v.margen<f.alert?'bad':(v.margen<f.floor?'warn':'good'); }
+const belowFloor = v => v.margen < floorsOf(v).floor;
 
 /* ===== Capa de datos (localStorage hoy · Supabase mañana) ===== */
 const Store = {
@@ -219,11 +302,21 @@ const Store = {
   all(){ try{return JSON.parse(localStorage.getItem(this.K))||[]}catch(e){return[]} },
   save(list){ localStorage.setItem(this.K, JSON.stringify(list)); },
   add(v){ const l=this.all(); l.push(v); this.save(l); },
+  remove(id){ this.save(this.all().filter(v=>v.id!==id)); },
   reset(){ localStorage.removeItem(this.K); seedDemo(); },
 };
 const money = n => "S/ "+(n||0).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const money0 = n => "S/ "+Math.round(n||0).toLocaleString("es-PE");
 const kf = n => Math.abs(n)>=1000 ? "S/ "+(n/1000).toFixed(n>=10000?0:1)+"k" : money0(n);
+let _idc=0; const genId = () => Date.now().toString(36)+"-"+(_idc++);
+
+/* ===== Semana ===== */
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','set','oct','nov','dic'];
+const DOW=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+function weekStart(ts){ const d=new Date(ts); d.setHours(0,0,0,0); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); return d.getTime(); }
+function weekLabel(ws){ const a=new Date(ws), b=new Date(ws+6*86400000); return `${a.getDate()} ${MES[a.getMonth()]} – ${b.getDate()} ${MES[b.getMonth()]}`; }
+const dayIdx = ts => (new Date(ts).getDay()+6)%7;
+let adminWeek = null; // timestamp de inicio de semana, o 'all'
 
 /* ===== Estado / sesión ===== */
 let USER = null; // {role:'vend'|'admin', name}
@@ -244,40 +337,47 @@ function render(){
   [login,vend,admin].forEach(e=>e.classList.add("hidden"));
   const right=document.getElementById("topRight");
   if(!USER){ login.classList.remove("hidden"); right.innerHTML=""; return; }
-  right.innerHTML = `<span class="rolechip">${USER.role==='vend'?'Vendedora':'Administrador'}</span> ${USER.name} <button class="btn sm ghost" onclick="logout()">Salir</button>`;
+  right.innerHTML = `<span class="rolechip">${USER.role==='vend'?'Vendedora':'Administrador'}</span> ${esc(USER.name)} <button class="btn sm ghost" onclick="logout()">Salir</button>`;
   if(USER.role==='vend'){ vend.classList.remove("hidden"); renderVend(); }
   else { admin.classList.remove("hidden"); renderAdmin(); }
 }
 
 /* ===== Vendedora ===== */
 function currentProduct(){ const t=document.getElementById("fProd").value.trim().toUpperCase(); return BY_NAME[t]||null; }
+function usarSugerido(val){ document.getElementById("fPrecio").value=val.toFixed(2); updateLive(); }
 function updateLive(){
   const p=currentProduct();
   const cant=parseFloat(document.getElementById("fCant").value)||0;
   const precio=parseFloat(document.getElementById("fPrecio").value)||0;
   const box=document.getElementById("liveBox"), btn=document.getElementById("btnSave");
   const cli=document.getElementById("fCliente").value.trim();
-  if(!p || precio<=0){
+  if(!p){
     box.innerHTML=`<div class="empty-live">Elige un producto y pon el precio<br>para ver el margen.</div>`;
     btn.disabled=true; return;
   }
-  const margen=(precio-p.costo)/precio;
-  const piso=p.costo/(1-FLOOR);
-  const cls = margen<ALERT?'bad':(margen<FLOOR?'warn':'good');
-  const badge = margen<ALERT
-    ? `<div class="badge bad">⚠ Muy bajo — piso sugerido ${money(piso)} (17%)</div>`
-    : (margen<FLOOR
-      ? `<div class="badge warn">Cerca del piso — sugerido ${money(piso)}</div>`
+  const f=CFG.floors[p.tipo], meta=CFG.meta[p.tipo], sug=p.costo/(1-meta);
+  const costoRow = CFG.hideCost?'':`<div class="lrow"><span>Costo unitario</span><b class="num">${money(p.costo)}</b></div>`;
+  const sugRow = `<div class="sug"><span>Precio meta (${Math.round(meta*100)}%): <b>${money(sug)}</b></span><button type="button" onclick="usarSugerido(${sug.toFixed(2)})">Usar</button></div>`;
+  if(precio<=0){
+    box.innerHTML=`<span class="lt">Cálculo automático</span>${costoRow}${sugRow}<div class="empty-live">Pon el precio para ver el margen.</div>`;
+    btn.disabled=true; return;
+  }
+  const margen=(precio-p.costo)/precio, pisoPrice=p.costo/(1-f.floor);
+  const cls = margen<f.alert?'bad':(margen<f.floor?'warn':'good');
+  const badge = margen<f.alert
+    ? `<div class="badge bad">⚠ Muy bajo${CFG.hideCost?'':` — piso ${money(pisoPrice)}`}</div>`
+    : (margen<f.floor
+      ? `<div class="badge warn">Cerca del piso${CFG.hideCost?'':` — sugerido ${money(pisoPrice)}`}</div>`
       : `<div class="badge good">✓ Buen margen</div>`);
   box.innerHTML=`
     <span class="lt">Cálculo automático</span>
-    <div class="lrow"><span>Costo unitario</span><b class="num">${money(p.costo)}</b></div>
+    ${costoRow}
     <div class="lrow"><span>Tu precio</span><b class="num">${money(precio)}</b></div>
     <div class="lrow"><span>Cantidad</span><b class="num">${cant||1}</b></div>
     <div class="lrow big"><span>Margen</span><span class="mgnum ${cls}">${(margen*100).toFixed(1)}%</span></div>
-    <div class="lrow"><span>Utilidad total</span><b class="num">${money((precio-p.costo)*(cant||1))}</b></div>
-    ${badge}`;
-  btn.disabled = !(cli && p && cant>0 && precio>0);
+    ${CFG.hideCost?'':`<div class="lrow"><span>Utilidad total</span><b class="num">${money((precio-p.costo)*(cant||1))}</b></div>`}
+    ${sugRow}${badge}`;
+  btn.disabled = !(cli && cant>0 && precio>0);
 }
 function registrar(){
   const p=currentProduct(); const cli=document.getElementById("fCliente").value.trim();
@@ -285,18 +385,29 @@ function registrar(){
   const precio=parseFloat(document.getElementById("fPrecio").value)||0;
   if(!p||!cli||cant<=0||precio<=0)return;
   const venta=precio*cant, costoT=p.costo*cant, util=venta-costoT;
-  Store.add({ ts:Date.now(), vendedora:USER.name, cliente:cli, sku:p.sku, producto:p.nombre, cat:p.cat,
+  Store.add({ id:genId(), ts:Date.now(), vendedora:USER.name, cliente:cli, sku:p.sku, producto:p.nombre, cat:p.cat, tipo:p.tipo,
     cant, precio, costo:p.costo, venta, costoT, util, margen:util/venta });
   toast("Venta registrada ✓","good");
   document.getElementById("fCliente").value=""; document.getElementById("fProd").value="";
   document.getElementById("fCant").value="1"; document.getElementById("fPrecio").value="";
   updateLive(); renderVend(); document.getElementById("fCliente").focus();
 }
+function editVenta(id){
+  const v=Store.all().find(x=>x.id===id); if(!v)return;
+  Store.remove(id);
+  document.getElementById("fCliente").value=v.cliente;
+  document.getElementById("fProd").value=v.producto;
+  document.getElementById("fCant").value=v.cant;
+  document.getElementById("fPrecio").value=v.precio;
+  updateLive(); renderVend();
+  document.getElementById("fCliente").scrollIntoView({behavior:"smooth",block:"center"});
+  toast("Editando venta — corrige y vuelve a registrar","good");
+}
 function renderVend(){
   document.getElementById("vGreet").textContent="Hola, "+USER.name.split(" ")[0];
   const mine=Store.all().filter(v=>v.vendedora===USER.name).sort((a,b)=>b.ts-a.ts);
   const venta=mine.reduce((s,v)=>s+v.venta,0), util=mine.reduce((s,v)=>s+v.util,0);
-  const mg=venta?util/venta*100:0, low=mine.filter(v=>v.margen<ALERT).length;
+  const mg=venta?util/venta*100:0, low=mine.filter(belowFloor).length;
   document.getElementById("vChips").innerHTML=
     `<div class="chip"><b>${mine.length}</b> ventas</div>`+
     `<div class="chip"><b>${kf(venta)}</b> vendido</div>`+
@@ -305,23 +416,30 @@ function renderVend(){
   document.getElementById("vCount").textContent=mine.length+" ventas";
   const tb=document.querySelector("#vTable tbody");
   tb.innerHTML = mine.slice(0,15).map(v=>{
-    const c=v.margen<ALERT?'bad':(v.margen<FLOOR?'warn':'good');
-    return `<tr><td>${hhmm(v.ts)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td><span class="pill ${c}">${(v.margen*100).toFixed(1)}%</span></td></tr>`;
-  }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">Aún no registras ventas.</td></tr>`;
+    return `<tr><td>${hhmm(v.ts)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Editar" onclick="editVenta('${v.id}')">✎</button><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`;
+  }).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Aún no registras ventas.</td></tr>`;
   buildDatalist();
 }
 function buildDatalist(){
   const dl=document.getElementById("prodlist");
-  if(dl.children.length) return;
-  dl.innerHTML = PRODUCTS.map(p=>`<option value="${esc(p.nombre)}">${esc(p.cat)} · costo ${money(p.costo)}</option>`).join("");
+  dl.innerHTML = PRODUCTS.map(p=>`<option value="${esc(p.nombre)}">${esc(p.cat)}${CFG.hideCost?'':' · costo '+money(p.costo)}</option>`).join("");
 }
 
 /* ===== Administrador ===== */
+function onWeekChange(val){ adminWeek = val==='all'?'all':parseInt(val,10); renderAdmin(); }
+function weeksPresent(){ return [...new Set(Store.all().map(v=>weekStart(v.ts)))].sort((a,b)=>b-a); }
+function filteredAdmin(){ const all=Store.all(); return (adminWeek==='all'||adminWeek==null)?all:all.filter(v=>weekStart(v.ts)===adminWeek); }
 function renderAdmin(){
-  const all=Store.all();
+  const weeks=weeksPresent();
+  if(adminWeek===null) adminWeek = weeks.length?weeks[0]:'all';
+  const sel=document.getElementById("weekSel");
+  sel.innerHTML = `<option value="all">Todo el histórico</option>`+weeks.map(w=>`<option value="${w}">Semana ${weekLabel(w)}</option>`).join("");
+  sel.value = String(adminWeek);
+
+  const all=filteredAdmin();
   const venta=all.reduce((s,v)=>s+v.venta,0), util=all.reduce((s,v)=>s+v.util,0);
-  const mg=venta?util/venta*100:0, low=all.filter(v=>v.margen<ALERT).length;
-  document.getElementById("aSub").textContent = `${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
+  const mg=venta?util/venta*100:0, low=all.filter(belowFloor).length;
+  document.getElementById("aSub").textContent = (adminWeek==='all'?'Histórico completo':'Semana '+weekLabel(adminWeek))+` · ${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
   document.getElementById("aKpis").innerHTML=[
     {kl:"Venta",kv:kf(venta)},{kl:"Utilidad",kv:kf(util),c:"good"},
     {kl:"Margen",kv:mg.toFixed(1)+"%"},{kl:"# Ventas",kv:all.length},
@@ -330,7 +448,7 @@ function renderAdmin(){
 
   // ranking vendedoras
   const bySeller={};
-  all.forEach(v=>{ (bySeller[v.vendedora]=bySeller[v.vendedora]||{venta:0,util:0,low:0}); bySeller[v.vendedora].venta+=v.venta; bySeller[v.vendedora].util+=v.util; if(v.margen<ALERT)bySeller[v.vendedora].low++; });
+  all.forEach(v=>{ (bySeller[v.vendedora]=bySeller[v.vendedora]||{venta:0,util:0,low:0}); bySeller[v.vendedora].venta+=v.venta; bySeller[v.vendedora].util+=v.util; if(belowFloor(v))bySeller[v.vendedora].low++; });
   const sellers=Object.entries(bySeller).map(([n,d])=>({n,...d,mg:d.venta?d.util/d.venta*100:0})).sort((a,b)=>b.venta-a.venta);
   const maxV=Math.max(1,...sellers.map(s=>s.venta));
   document.getElementById("aRank").innerHTML = sellers.map((s,i)=>
@@ -344,27 +462,92 @@ function renderAdmin(){
   const cats=Object.entries(byCat).map(([n,d])=>({n,mg:d.venta?d.util/d.venta*100:0,venta:d.venta})).sort((a,b)=>b.mg-a.mg);
   const maxM=Math.max(1,...cats.map(c=>c.mg));
   document.getElementById("aCat").innerHTML = cats.map(c=>{
-    const cls=c.mg>=FLOOR*100?'good':(c.mg>=ALERT*100?'warn':'bad');
+    const cls=c.mg>=30?'good':(c.mg>=15?'warn':'bad');
     return `<div class="bar-row"><span class="bar-l">${esc(c.n)}</span>`+
     `<span class="bar-t"><span class="bar-f ${cls}" style="width:${Math.max(6,c.mg/maxM*100)}%"></span></span>`+
     `<span class="bar-v num">${c.mg.toFixed(1)}%</span></div>`;
   }).join("") || emptyMsg();
 
+  // ventas por día (semana seleccionada, o la más reciente si "Todo")
+  const chartWeek = (adminWeek==='all') ? (weeks[0]||weekStart(Date.now())) : adminWeek;
+  renderDayChart(chartWeek);
+
   // insight
   const top=sellers[0], worstCat=cats[cats.length-1], bestCat=cats[0];
   document.getElementById("aInsight").innerHTML = all.length
-    ? `<span class="i">!</span><div><b>${esc(top.n)}</b> lidera con ${kf(top.venta)}. La categoría más rentable es <b>${esc(bestCat.n)}</b> (${bestCat.mg.toFixed(0)}%) y la que menos deja es <b>${esc(worstCat.n)}</b> (${worstCat.mg.toFixed(0)}%). ${low?`<b>${low} ventas</b> cerraron bajo el piso de 15% → revisar precios.`:`Ninguna venta bajó del piso. 👌`}</div>`
-    : `<span class="i">!</span><div>Aún no hay ventas registradas. Entra como <b>vendedora</b> y registra algunas para ver el análisis.</div>`;
+    ? `<span class="i">!</span><div><b>${esc(top.n)}</b> lidera con ${kf(top.venta)}. La categoría más rentable es <b>${esc(bestCat.n)}</b> (${bestCat.mg.toFixed(0)}%) y la que menos deja es <b>${esc(worstCat.n)}</b> (${worstCat.mg.toFixed(0)}%). ${low?`<b>${low} ventas</b> quedaron bajo su piso → revisar precios.`:`Ninguna venta bajó del piso. 👌`}</div>`
+    : `<span class="i">!</span><div>No hay ventas en este periodo. Cambia de semana arriba o entra como <b>vendedora</b> para registrar.</div>`;
 
   document.getElementById("aCount").textContent=all.length+" ventas";
   const tb=document.querySelector("#aTable tbody");
-  tb.innerHTML = all.sort((a,b)=>b.ts-a.ts).slice(0,40).map(v=>{
-    const c=v.margen<ALERT?'bad':(v.margen<FLOOR?'warn':'good');
-    return `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${c}">${(v.margen*100).toFixed(1)}%</span></td></tr>`;
-  }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Sin ventas.</td></tr>`;
+  tb.innerHTML = all.slice().sort((a,b)=>b.ts-a.ts).slice(0,60).map(v=>{
+    return `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`;
+  }).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Sin ventas en este periodo.</td></tr>`;
+}
+function renderDayChart(ws){
+  document.getElementById("dayWeekLbl").textContent = "Semana "+weekLabel(ws);
+  const sales=Store.all().filter(v=>weekStart(v.ts)===ws);
+  const totals=[0,0,0,0,0,0,0];
+  sales.forEach(v=>{ totals[dayIdx(v.ts)]+=v.venta; });
+  const max=Math.max(1,...totals);
+  const todayIdx = weekStart(Date.now())===ws ? dayIdx(Date.now()) : -1;
+  document.getElementById("daybars").innerHTML = totals.map((t,i)=>
+    `<div class="daycol ${i===todayIdx?'today':''}"><span class="dv">${t?kf(t):''}</span><span class="db" style="height:${t?Math.max(4,t/max*100):0}%"></span><span class="dl">${DOW[i]}</span></div>`
+  ).join("");
 }
 function emptyMsg(){return `<div style="color:var(--muted);font-size:13px;padding:8px 0">Sin datos todavía.</div>`;}
 function uniqueSellers(a){return [...new Set(a.map(v=>v.vendedora))];}
+
+/* ===== Eliminar (con deshacer) ===== */
+let lastDeleted=null, undoT;
+function deleteVenta(id){
+  const l=Store.all(); const i=l.findIndex(v=>v.id===id); if(i<0)return;
+  lastDeleted=l[i]; l.splice(i,1); Store.save(l); render();
+  toast("Venta eliminada","good",{label:"Deshacer",fn:undoDelete});
+}
+function undoDelete(){ if(!lastDeleted)return; Store.add(lastDeleted); lastDeleted=null; render(); toast("Venta restaurada","good"); }
+
+/* ===== Exportar CSV ===== */
+function csvCell(x){ x=String(x); return /[";\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }
+const dec2 = n => Number(n).toFixed(2).replace('.',',');   // Excel es-PE usa coma decimal
+function exportCSV(){
+  const rows=filteredAdmin();
+  if(!rows.length){ toast("No hay ventas para exportar","bad"); return; }
+  const head=['Fecha','Hora','Vendedora','Cliente','SKU','Producto','Categoría','Tipo','Cantidad','Precio','Venta','Costo unit.','Costo total','Utilidad','Margen %'];
+  const lines=[head.join(';')];
+  rows.slice().sort((a,b)=>a.ts-b.ts).forEach(v=>{
+    lines.push([ddmm(v.ts),hhmm(v.ts),v.vendedora,v.cliente,v.sku,v.producto,v.cat,tipoOf(v),v.cant,dec2(v.precio),dec2(v.venta),dec2(v.costo),dec2(v.costoT),dec2(v.util),(v.margen*100).toFixed(1).replace('.',',')].map(csvCell).join(';'));
+  });
+  const label = adminWeek==='all'?'histórico':weekLabel(adminWeek).replace(/[^\dA-Za-zñ]+/g,'-');
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='MargenVivo_'+label+'.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast("Exportado ✓","good");
+}
+
+/* ===== Ajustes ===== */
+function openSettings(){
+  const g=id=>document.getElementById(id);
+  g('pl_floor').value=Math.round(CFG.floors.plancha.floor*100);
+  g('pl_alert').value=Math.round(CFG.floors.plancha.alert*100);
+  g('pl_meta').value=Math.round(CFG.meta.plancha*100);
+  g('ca_floor').value=Math.round(CFG.floors.canto.floor*100);
+  g('ca_alert').value=Math.round(CFG.floors.canto.alert*100);
+  g('ca_meta').value=Math.round(CFG.meta.canto*100);
+  g('cf_hideCost').checked=CFG.hideCost;
+  g('settingsModal').classList.remove('hidden');
+}
+function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
+function pct(id){ let v=parseFloat(document.getElementById(id).value); if(isNaN(v))v=0; return Math.min(99,Math.max(0,v))/100; }
+function saveSettings(){
+  CFG.floors.plancha={floor:pct('pl_floor'),alert:pct('pl_alert')};
+  CFG.floors.canto={floor:pct('ca_floor'),alert:pct('ca_alert')};
+  CFG.meta.plancha=pct('pl_meta'); CFG.meta.canto=pct('ca_meta');
+  CFG.hideCost=document.getElementById('cf_hideCost').checked;
+  localStorage.setItem(CFG_K, JSON.stringify(CFG));
+  closeSettings(); render(); toast("Ajustes guardados","good");
+}
 
 /* ===== utils ===== */
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -372,14 +555,20 @@ function pad(n){return n<10?'0'+n:n;}
 function hhmm(ts){const d=new Date(ts);return pad(d.getHours())+":"+pad(d.getMinutes());}
 function ddmm(ts){const d=new Date(ts);return pad(d.getDate())+"/"+pad(d.getMonth()+1);}
 let toastT;
-function toast(msg,kind){const t=document.getElementById("toast");t.textContent=msg;t.style.background=kind==='bad'?'var(--bad)':'var(--good)';t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200);}
-function resetDemo(){ Store.reset(); render(); toast("Datos demo reiniciados","good"); }
+function toast(msg,kind,action){
+  const t=document.getElementById("toast");
+  t.innerHTML = esc(msg) + (action?` <span class="tundo">${esc(action.label)}</span>`:"");
+  t.style.background = kind==='bad'?'var(--bad)':'var(--good)';
+  if(action){ t.querySelector('.tundo').onclick=()=>{ action.fn(); t.classList.remove("show"); }; }
+  t.classList.add("show"); clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove("show"), action?5000:2200);
+}
+function resetDemo(){ adminWeek=null; Store.reset(); render(); toast("Datos demo reiniciados","good"); }
 
 /* ===== Semilla demo (para que el panel no arranque vacío) ===== */
 function seedDemo(){
   if(Store.all().length) return;
   const pick=n=>PRODUCTS.find(p=>p.nombre===n)||PRODUCTS[0];
-  const sellers=["Ana Torres","Rosa Díaz","Lucía Vega"];
   const rows=[
     ["Ana Torres","Mueblería San José","BLANCO PERFECT",8,175],
     ["Ana Torres","Carpintería Luna","BLANCO",5,190],
@@ -400,10 +589,17 @@ function seedDemo(){
   rows.forEach((r,i)=>{
     const p=pick(r[2]); const cant=r[3], precio=r[4];
     const venta=precio*cant, costoT=p.costo*cant, util=venta-costoT;
-    Store.add({ ts: now - (rows.length-i)*3600*1000*4, vendedora:r[0], cliente:r[1], sku:p.sku, producto:p.nombre, cat:p.cat, cant, precio, costo:p.costo, venta, costoT, util, margen:util/venta });
+    Store.add({ id:genId(), ts: now - (rows.length-i)*3600*1000*8, vendedora:r[0], cliente:r[1], sku:p.sku, producto:p.nombre, cat:p.cat, tipo:p.tipo, cant, precio, costo:p.costo, venta, costoT, util, margen:util/venta });
   });
+}
+/* ===== Migración: asegura id y tipo en datos previos ===== */
+function migrate(){
+  const l=Store.all(); let ch=false;
+  l.forEach(v=>{ if(!v.id){v.id=genId();ch=true;} if(!v.tipo){v.tipo=(v.costo<5?'canto':'plancha');ch=true;} });
+  if(ch)Store.save(l);
 }
 document.getElementById("footNote").innerHTML = `Prototipo <b>MargenVivo</b> · ${PRODUCTS.length} productos cargados · los datos se guardan en <code>este navegador</code> (demo). Para multiusuario en la nube: conectar a Supabase.`;
 seedDemo();
+migrate();
 render();
 </script>
