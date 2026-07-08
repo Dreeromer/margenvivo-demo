@@ -303,8 +303,16 @@
       </div>
     </div>
     <div class="cfg-sec">
+      <div class="st">Datos de la empresa <span class="tag">solo admin</span></div>
+      <p class="sub" style="font-size:12px;margin:2px 0 8px">Es tu negocio (emisor). Sale como encabezado de la cotización formal.</p>
+      <div class="grid2">
+        <div class="field"><label class="label">Empresa / persona natural</label><input id="set_empresa"></div>
+        <div class="field"><label class="label">RUC / DNI</label><input id="set_ruc"></div>
+      </div>
+    </div>
+    <div class="cfg-sec">
       <div class="st">Datos de pago <span class="tag">solo admin</span></div>
-      <p class="sub" style="font-size:12px;margin:2px 0 8px">Salen en la cotización formal. La vendedora solo edita el nombre (empresa/persona natural) y el RUC/DNI.</p>
+      <p class="sub" style="font-size:12px;margin:2px 0 8px">Salen en la cotización formal. La vendedora solo llena los datos del cliente (nombre + RUC/DNI).</p>
       <div class="grid2">
         <div class="field"><label class="label">Banco</label><input id="set_banco"></div>
         <div class="field"><label class="label">N° de cuenta</label><input id="set_cuenta"></div>
@@ -343,10 +351,10 @@
           <button class="btn" onclick="downloadProforma()">⬇ Descargar imagen</button>
         </div>
         <details class="pf-config" open>
-          <summary>Datos del negocio</summary>
-          <div class="field"><label class="label">Empresa / persona natural</label><input id="cfgEmpresa" oninput="refreshProforma()"></div>
-          <div class="field"><label class="label">RUC / DNI (opcional)</label><input id="cfgRuc" oninput="refreshProforma()"></div>
-          <p class="sub" style="font-size:11.5px;margin:10px 0 0">Los datos de pago (banco, cuenta, Yape/Plin) e IGV los configura el administrador y salen en la cotización formal.</p>
+          <summary>Datos del cliente</summary>
+          <div class="field"><label class="label">Cliente (empresa / persona natural)</label><input id="cfgCliente" oninput="onClienteModalInput()"></div>
+          <div class="field"><label class="label">RUC / DNI del cliente (opcional)</label><input id="cfgClienteDoc" oninput="onClienteDocInput()"></div>
+          <p class="sub" style="font-size:11.5px;margin:10px 0 0">Los datos de tu empresa y de pago (banco, cuenta, Yape/Plin) los configura el administrador.</p>
         </details>
         <button class="btn primary" style="width:100%" onclick="registrarProformaVenta()">Registrar como ventas ✓</button>
       </div>
@@ -548,22 +556,20 @@ function generarProforma(mode){
   pfMode = mode==='simple' ? 'simple' : 'formal';
   if(!CART.items.length){ toast("Agrega ítems primero","bad"); return; }
   if(!(CART.cliente||document.getElementById("fCliente").value.trim())){ toast("Escribe el nombre del cliente","bad"); return; }
-  const cfg=getConfig();
-  setV('cfgEmpresa',cfg.empresa); setV('cfgRuc',cfg.ruc);
+  setV('cfgCliente', CART.cliente||document.getElementById("fCliente").value.trim());
+  setV('cfgClienteDoc', CART.clienteDoc||'');
   document.getElementById('pfKind').textContent = pfMode==='simple' ? 'WhatsApp · simple' : 'Formal';
   document.getElementById('proformaModal').classList.remove('hidden');
   refreshProforma();
 }
+function onClienteModalInput(){ CART.cliente=val('cfgCliente'); document.getElementById('fCliente').value=CART.cliente; saveCart(); refreshProforma(); }
+function onClienteDocInput(){ CART.clienteDoc=val('cfgClienteDoc'); saveCart(); refreshProforma(); }
 function closeProforma(){ document.getElementById('proformaModal').classList.add('hidden'); }
 function registrarProformaVenta(){ registrarPedido(); closeProforma(); }
-function readCfgForm(){
-  // La vendedora solo edita empresa + RUC/DNI; el resto (datos de pago, validez, IGV) lo mantiene el admin.
-  return Object.assign(getConfig(), { empresa:val('cfgEmpresa')||'Mi Negocio', ruc:val('cfgRuc') });
-}
 function refreshProforma(){
-  const cfg=readCfgForm(); saveConfig(cfg);
+  const cfg=getConfig();   // empresa/RUC y datos de pago = de NUESTRO negocio (los fija el admin)
   const cli=CART.cliente||document.getElementById("fCliente").value.trim();
-  lastCanvas=renderProformaCanvas(cli, CART.items, {num:'COT-'+getSeq(), fecha:fechaHoy(), cfg, simple:pfMode==='simple'});
+  lastCanvas=renderProformaCanvas(cli, CART.items, {num:'COT-'+getSeq(), fecha:fechaHoy(), cfg, simple:pfMode==='simple', clienteDoc:CART.clienteDoc||''});
   document.getElementById('pfImg').src=lastCanvas.toDataURL('image/png');
 }
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath(); }
@@ -591,7 +597,8 @@ function renderProformaCanvas(cliente, items, opts){
   if(!simple && cfg.ruc){ y+=22; ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText('RUC '+cfg.ruc, pad, y); }
   y+=30;
   ctx.fillStyle=ink2; ctx.font='600 13px system-ui'; ctx.fillText('Cliente:', pad, y);
-  ctx.fillStyle=ink; ctx.font='700 14px system-ui'; ctx.fillText(fitText(ctx,cliente||'—',W-pad-120), pad+62, y);
+  ctx.fillStyle=ink; ctx.font='700 14px system-ui'; ctx.fillText(fitText(ctx,cliente||'—',W-pad-240), pad+62, y);
+  if(opts.clienteDoc){ ctx.textAlign='right'; ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText('RUC/DNI '+opts.clienteDoc, sX, y); ctx.textAlign='left'; }
   y+=16;
   ctx.strokeStyle=line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
   y+=24;
@@ -826,6 +833,7 @@ function openSettings(){
   g('ca_alert').value=Math.round(CFG.floors.canto.alert*100);
   g('ca_meta').value=Math.round(CFG.meta.canto*100);
   const c=getConfig();
+  g('set_empresa').value=c.empresa; g('set_ruc').value=c.ruc;
   g('set_banco').value=c.banco; g('set_cuenta').value=c.cuenta; g('set_cci').value=c.cci;
   g('set_yape').value=c.yape; g('set_titular').value=c.titular; g('set_validez').value=c.validez;
   g('set_igv').checked=!!c.igv;
@@ -840,6 +848,7 @@ function saveSettings(){
   localStorage.setItem(CFG_K, JSON.stringify(CFG));
   const g=id=>document.getElementById(id);
   saveConfig(Object.assign(getConfig(), {
+    empresa:g('set_empresa').value.trim()||'Mi Negocio', ruc:g('set_ruc').value.trim(),
     banco:g('set_banco').value.trim(), cuenta:g('set_cuenta').value.trim(), cci:g('set_cci').value.trim(),
     yape:g('set_yape').value.trim(), titular:g('set_titular').value.trim(),
     validez:parseInt(g('set_validez').value)||5, igv:g('set_igv').checked
