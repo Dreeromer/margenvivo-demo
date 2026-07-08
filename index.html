@@ -133,6 +133,14 @@
   .daycol .db{width:78%;max-width:34px;background:var(--primary);border-radius:6px 6px 0 0;min-height:3px;margin-top:auto;transition:height .2s}
   .daycol.today .db{background:var(--primary-d)}
   .daycol .dl{font-size:11px;color:var(--muted);font-weight:600}
+  .grow{font-size:11px;font-weight:800;margin-left:5px;white-space:nowrap}
+  .grow.up{color:var(--good)} .grow.down{color:var(--bad)} .grow.flat{color:var(--muted)}
+  .seg{display:inline-flex;gap:4px}
+  .seg-b{border:1px solid var(--line2);background:transparent;color:var(--muted);border-radius:8px;padding:4px 11px;font-size:12px;font-weight:600;cursor:pointer}
+  .seg-b.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .navbtn{border:1px solid var(--line2);background:var(--card);color:var(--ink2);border-radius:8px;width:28px;height:26px;font-size:12px;cursor:pointer;padding:0}
+  .navbtn:disabled{opacity:.35;cursor:default}
+  .rank-sub{font-size:11.5px;color:var(--muted);margin:3px 0 2px}
   .insight{display:flex;gap:11px;align-items:flex-start;background:var(--primary-soft);border-radius:11px;padding:13px 15px;font-size:13.5px;line-height:1.45;color:var(--ink);margin-top:16px}
   .insight .i{flex:none;width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-weight:800;display:grid;place-items:center;font-size:13px}
   .section-h{display:flex;align-items:center;gap:12px;margin:26px 0 12px}
@@ -262,15 +270,24 @@
   </div>
   <div class="kpis" id="aKpis"></div>
   <div class="panels">
-    <div class="card"><h2>Ranking de vendedoras</h2><div class="bars" id="aRank"></div></div>
+    <div class="card"><h2>Ranking de vendedoras</h2>
+      <p class="rank-sub">Barra = ventas · <b>%</b> = margen de ganancia · <span style="color:var(--good)">▲</span><span style="color:var(--bad)">▼</span> = crecimiento vs semana anterior</p>
+      <div class="bars" id="aRank"></div></div>
     <div class="card"><h2>Dónde se gana y dónde se margina menos</h2><p class="sub" style="margin:2px 0 0;font-size:12.5px">Margen por categoría</p><div class="bars" id="aCat"></div></div>
   </div>
   <div class="card" style="margin-top:16px">
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><h2>Ventas por día</h2><span class="sub" id="dayWeekLbl" style="font-size:12.5px"></span></div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <h2>Lo más vendido</h2>
+      <div class="seg"><button id="topByV" class="seg-b active" onclick="setTopMetric('venta')">Por venta S/</button><button id="topByC" class="seg-b" onclick="setTopMetric('cant')">Por cantidad</button></div>
+    </div>
+    <div class="bars" id="aTop"></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin-right:2px">Ventas por día</h2><button class="navbtn" id="dcPrev" onclick="dayChartStep(1)" title="Semana anterior">◀</button><span class="sub" id="dayWeekLbl" style="font-size:12.5px"></span><button class="navbtn" id="dcNext" onclick="dayChartStep(-1)" title="Semana siguiente">▶</button></div>
     <div class="daybars" id="daybars"></div>
   </div>
   <div class="insight" id="aInsight"></div>
-  <div class="section-h"><h2>Todas las ventas</h2><span class="muted" id="aCount"></span></div>
+  <div class="section-h"><h2>Todas las ventas</h2><select id="daySel" onchange="onDayChange(this.value)" style="width:auto;margin-left:auto;padding:6px 10px;font-size:12.5px"></select><span class="muted" id="aCount"></span></div>
   <div class="tbl-wrap"><table id="aTable"><thead><tr><th>Fecha</th><th>Vendedora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Venta</th><th>Margen</th><th></th></tr></thead><tbody></tbody></table></div>
 </div>
 
@@ -457,7 +474,13 @@ const DOW=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 function weekStart(ts){ const d=new Date(ts); d.setHours(0,0,0,0); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); return d.getTime(); }
 function weekLabel(ws){ const a=new Date(ws), b=new Date(ws+6*86400000); return `${a.getDate()} ${MES[a.getMonth()]} – ${b.getDate()} ${MES[b.getMonth()]}`; }
 const dayIdx = ts => (new Date(ts).getDay()+6)%7;
-let adminWeek = null; // timestamp de inicio de semana, o 'all'
+let adminWeek = null;   // timestamp de inicio de semana, o 'all'
+let dayChartWeek = null; // semana mostrada en "Ventas por día" (navegable con flechas)
+let tableDay = 'all';    // día filtrado en "Todas las ventas", o 'all'
+let topMetric = 'venta'; // "Lo más vendido": 'venta' | 'cant'
+let _aAll = [];          // ventas del periodo filtrado (cache para tabla/top)
+const dayStart = ts => { const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); };
+const fullDay = ts => { const d=new Date(ts); return DOW[dayIdx(ts)]+' '+pad(d.getDate())+' '+MES[d.getMonth()]; };
 
 /* ===== Estado / sesión ===== */
 let USER = null; // {role:'vend'|'admin', name}
@@ -821,7 +844,10 @@ function buildDatalist(){
 }
 
 /* ===== Administrador ===== */
-function onWeekChange(val){ adminWeek = val==='all'?'all':parseInt(val,10); renderAdmin(); }
+function onWeekChange(val){ adminWeek = val==='all'?'all':parseInt(val,10); tableDay='all'; dayChartWeek=null; renderAdmin(); }
+function onDayChange(val){ tableDay = val==='all'?'all':parseInt(val,10); renderTable(); }
+function setTopMetric(m){ topMetric=m; document.getElementById('topByV').classList.toggle('active',m==='venta'); document.getElementById('topByC').classList.toggle('active',m==='cant'); renderTopProducts(); }
+function dayChartStep(dir){ const weeks=weeksPresent(); if(!weeks.length)return; let i=weeks.indexOf(dayChartWeek); if(i<0)i=0; i=Math.min(weeks.length-1,Math.max(0,i+dir)); dayChartWeek=weeks[i]; renderDayChart(); }
 function weeksPresent(){ return [...new Set(Store.all().map(v=>weekStart(v.ts)))].sort((a,b)=>b-a); }
 function filteredAdmin(){ const all=Store.all(); return (adminWeek==='all'||adminWeek==null)?all:all.filter(v=>weekStart(v.ts)===adminWeek); }
 function renderAdmin(){
@@ -831,7 +857,7 @@ function renderAdmin(){
   sel.innerHTML = `<option value="all">Todo el histórico</option>`+weeks.map(w=>`<option value="${w}">Semana ${weekLabel(w)}</option>`).join("");
   sel.value = String(adminWeek);
 
-  const all=filteredAdmin();
+  const all=filteredAdmin(); _aAll=all;
   const venta=all.reduce((s,v)=>s+v.venta,0), util=all.reduce((s,v)=>s+v.util,0);
   const mg=venta?util/venta*100:0, low=all.filter(belowFloor).length;
   document.getElementById("aSub").textContent = (adminWeek==='all'?'Histórico completo':'Semana '+weekLabel(adminWeek))+` · ${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
@@ -841,15 +867,24 @@ function renderAdmin(){
     {kl:"Bajo piso",kv:low,c:low?"warn":""},
   ].map(k=>`<div class="kpi"><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
 
-  // ranking vendedoras
+  // ranking vendedoras (+ crecimiento vs semana anterior)
   const bySeller={};
   all.forEach(v=>{ (bySeller[v.vendedora]=bySeller[v.vendedora]||{venta:0,util:0,low:0}); bySeller[v.vendedora].venta+=v.venta; bySeller[v.vendedora].util+=v.util; if(belowFloor(v))bySeller[v.vendedora].low++; });
   const sellers=Object.entries(bySeller).map(([n,d])=>({n,...d,mg:d.venta?d.util/d.venta*100:0})).sort((a,b)=>b.venta-a.venta);
   const maxV=Math.max(1,...sellers.map(s=>s.venta));
-  document.getElementById("aRank").innerHTML = sellers.map((s,i)=>
-    `<div class="bar-row"><span class="bar-l"><span class="rank-badge ${i===0?'top':''}">${i+1}</span>${esc(s.n)}</span>`+
+  // ventas de la semana anterior por vendedora (solo si hay una semana específica seleccionada)
+  const prevWk=(adminWeek!=='all'&&adminWeek!=null)?adminWeek-7*86400000:null;
+  const prevBy={};
+  if(prevWk!=null) Store.all().forEach(v=>{ if(weekStart(v.ts)===prevWk) prevBy[v.vendedora]=(prevBy[v.vendedora]||0)+v.venta; });
+  document.getElementById("aRank").innerHTML = sellers.map((s,i)=>{
+    let gb='';
+    if(prevWk!=null){ const pv=prevBy[s.n]||0;
+      if(pv>0){ const g=(s.venta-pv)/pv*100, up=g>=0; gb=`<span class="grow ${up?'up':'down'}" title="vs semana anterior (${kf(pv)})">${up?'▲':'▼'}${Math.abs(g).toFixed(0)}%</span>`; }
+      else if(s.venta>0){ gb=`<span class="grow up" title="no vendió la semana anterior">▲ nuevo</span>`; } }
+    return `<div class="bar-row"><span class="bar-l"><span class="rank-badge ${i===0?'top':''}">${i+1}</span>${esc(s.n)}</span>`+
     `<span class="bar-t"><span class="bar-f" style="width:${Math.max(6,s.venta/maxV*100)}%"></span></span>`+
-    `<span class="bar-v num">${kf(s.venta)} · ${s.mg.toFixed(0)}%</span></div>`).join("") || emptyMsg();
+    `<span class="bar-v num" title="ventas · margen · crecimiento">${kf(s.venta)} · ${s.mg.toFixed(0)}%${gb}</span></div>`;
+  }).join("") || emptyMsg();
 
   // margen por categoría
   const byCat={};
@@ -863,9 +898,12 @@ function renderAdmin(){
     `<span class="bar-v num">${c.mg.toFixed(1)}%</span></div>`;
   }).join("") || emptyMsg();
 
-  // ventas por día (semana seleccionada, o la más reciente si "Todo")
-  const chartWeek = (adminWeek==='all') ? (weeks[0]||weekStart(Date.now())) : adminWeek;
-  renderDayChart(chartWeek);
+  // lo más vendido
+  renderTopProducts();
+
+  // ventas por día (semana navegable; por defecto la seleccionada o la más reciente)
+  if(dayChartWeek===null) dayChartWeek = (adminWeek==='all') ? (weeks[0]||weekStart(Date.now())) : adminWeek;
+  renderDayChart();
 
   // insight
   const top=sellers[0], worstCat=cats[cats.length-1], bestCat=cats[0];
@@ -873,14 +911,42 @@ function renderAdmin(){
     ? `<span class="i">!</span><div><b>${esc(top.n)}</b> lidera con ${kf(top.venta)}. La categoría más rentable es <b>${esc(bestCat.n)}</b> (${bestCat.mg.toFixed(0)}%) y la que menos deja es <b>${esc(worstCat.n)}</b> (${worstCat.mg.toFixed(0)}%). ${low?`<b>${low} ventas</b> quedaron bajo su piso → revisar precios.`:`Ninguna venta bajó del piso. 👌`}</div>`
     : `<span class="i">!</span><div>No hay ventas en este periodo. Cambia de semana arriba o entra como <b>vendedora</b> para registrar.</div>`;
 
-  document.getElementById("aCount").textContent=all.length+" ventas";
-  const tb=document.querySelector("#aTable tbody");
-  tb.innerHTML = all.slice().sort((a,b)=>b.ts-a.ts).slice(0,60).map(v=>{
-    return `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`;
-  }).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Sin ventas en este periodo.</td></tr>`;
+  // selector de día para la tabla + tabla
+  const days=[...new Set(all.map(v=>dayStart(v.ts)))].sort((a,b)=>b-a);
+  if(tableDay!=='all' && !days.includes(tableDay)) tableDay='all';
+  const dsel=document.getElementById('daySel');
+  dsel.innerHTML=`<option value="all">Todos los días</option>`+days.map(d=>`<option value="${d}">${fullDay(d)}</option>`).join('');
+  dsel.value=String(tableDay);
+  renderTable();
 }
-function renderDayChart(ws){
+function renderTable(){
+  let rows=_aAll;
+  if(tableDay!=='all') rows=rows.filter(v=>dayStart(v.ts)===tableDay);
+  document.getElementById("aCount").textContent=rows.length+" ventas";
+  const tb=document.querySelector("#aTable tbody");
+  tb.innerHTML = rows.slice().sort((a,b)=>b.ts-a.ts).slice(0,300).map(v=>
+    `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`
+  ).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Sin ventas en este periodo.</td></tr>`;
+}
+function renderTopProducts(){
+  const by={};
+  _aAll.forEach(v=>{ (by[v.producto]=by[v.producto]||{venta:0,cant:0}); by[v.producto].venta+=v.venta; by[v.producto].cant+=v.cant; });
+  const arr=Object.entries(by).map(([n,d])=>({n,...d})).sort((a,b)=>b[topMetric]-a[topMetric]).slice(0,8);
+  const mx=Math.max(1,...arr.map(x=>x[topMetric]));
+  document.getElementById('aTop').innerHTML = arr.map(x=>
+    `<div class="bar-row"><span class="bar-l" title="${esc(x.n)}">${esc(x.n)}</span>`+
+    `<span class="bar-t"><span class="bar-f" style="width:${Math.max(6,x[topMetric]/mx*100)}%"></span></span>`+
+    `<span class="bar-v num">${topMetric==='cant'? Math.round(x.cant).toLocaleString('es-PE')+' u' : kf(x.venta)}</span></div>`
+  ).join("") || emptyMsg();
+}
+function renderDayChart(){
+  const weeks=weeksPresent();
+  const ws=dayChartWeek||weeks[0]||weekStart(Date.now());
   document.getElementById("dayWeekLbl").textContent = "Semana "+weekLabel(ws);
+  const idx=weeks.indexOf(ws);
+  const dp=document.getElementById('dcPrev'), dn=document.getElementById('dcNext');
+  if(dp) dp.disabled = idx<0 || idx>=weeks.length-1;   // ◀ = más antigua
+  if(dn) dn.disabled = idx<=0;                           // ▶ = más reciente
   const sales=Store.all().filter(v=>weekStart(v.ts)===ws);
   const totals=[0,0,0,0,0,0,0];
   sales.forEach(v=>{ totals[dayIdx(v.ts)]+=v.venta; });
