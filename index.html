@@ -78,6 +78,17 @@
   .mgnum.good{color:var(--good)}.mgnum.warn{color:var(--warn)}.mgnum.bad{color:var(--bad)}
   .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:8px 11px;border-radius:9px}
   .badge.good{background:var(--good-soft);color:var(--good)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.bad{background:var(--bad-soft);color:var(--bad)}
+  .semaforo{display:flex;align-items:center;gap:16px;border-top:1px solid var(--line);padding-top:14px;margin-top:6px}
+  .sf-housing{display:flex;flex-direction:column;gap:8px;background:#20242b;padding:10px 9px;border-radius:14px;box-shadow:inset 0 1px 4px rgba(0,0,0,.55)}
+  .sf-dot{width:28px;height:28px;border-radius:50%;background:#3a3f47;opacity:.25;transition:opacity .2s,box-shadow .2s}
+  .semaforo.bad .sf-dot.red{background:var(--bad);opacity:1;box-shadow:0 0 14px 1px var(--bad)}
+  .semaforo.warn .sf-dot.amber{background:var(--warn);opacity:1;box-shadow:0 0 14px 1px var(--warn)}
+  .semaforo.good .sf-dot.green{background:var(--good);opacity:1;box-shadow:0 0 14px 1px var(--good)}
+  .sf-msg{font-size:20px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+  .semaforo.good .sf-msg{color:var(--good)}.semaforo.warn .sf-msg{color:var(--warn)}.semaforo.bad .sf-msg{color:var(--bad)}
+  .sf-sub{font-size:13px;color:var(--muted);font-weight:600;margin-top:3px}
+  .dot{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle}
+  .dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
   .empty-live{color:var(--muted);font-size:13px;text-align:center;padding:14px 0}
   .sug{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--primary-soft);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--ink)}
   .sug b{color:var(--primary-d)}
@@ -242,7 +253,7 @@
   </div>
 
   <div class="section-h"><h2>Mis ventas recientes</h2><span class="muted" id="vCount"></span></div>
-  <div class="tbl-wrap"><table id="vTable"><thead><tr><th>Hora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Margen</th><th></th></tr></thead><tbody></tbody></table></div>
+  <div class="tbl-wrap"><table id="vTable"><thead><tr><th>Hora</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Precio</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table></div>
 </div>
 
 <!-- ADMIN -->
@@ -291,7 +302,7 @@
         <div class="field"><label class="label">Meta %</label><input id="ca_meta" type="number" min="0" max="99" step="1"></div>
       </div>
     </div>
-    <label class="switch"><input type="checkbox" id="cf_hideCost"> Ocultar el costo a la vendedora (solo ve el % de margen)</label>
+    <p class="sub" style="font-size:12px;margin:2px 0 0">La vendedora nunca ve costos ni márgenes: solo un semáforo que le dice si el precio está bien.</p>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeSettings()">Cancelar</button>
       <button class="btn primary" onclick="saveSettings()">Guardar</button>
@@ -350,12 +361,11 @@ const BY_NAME = Object.fromEntries(PRODUCTS.map(p=>[p.nombre.toUpperCase(),p]));
 const CFG_K='mv_cfg_v1';
 const DEFAULT_CFG = {
   floors:{ plancha:{floor:0.12, alert:0.10}, canto:{floor:0.40, alert:0.30} },
-  meta:{ plancha:0.16, canto:0.55 },
-  hideCost:false
+  meta:{ plancha:0.16, canto:0.55 }
 };
 function loadCfg(){
   const d=JSON.parse(JSON.stringify(DEFAULT_CFG));
-  try{ const s=JSON.parse(localStorage.getItem(CFG_K)); if(s){ if(s.floors)d.floors=s.floors; if(s.meta)d.meta=s.meta; if(typeof s.hideCost==='boolean')d.hideCost=s.hideCost; } }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(CFG_K)); if(s){ if(s.floors)d.floors=s.floors; if(s.meta)d.meta=s.meta; } }catch(e){}
   return d;
 }
 let CFG = loadCfg();
@@ -426,27 +436,26 @@ function updateLive(){
     btn.disabled=true; return;
   }
   const f=CFG.floors[p.tipo], meta=CFG.meta[p.tipo], sug=p.costo/(1-meta);
-  const costoRow = CFG.hideCost?'':`<div class="lrow"><span>Costo unitario</span><b class="num">${money(p.costo)}</b></div>`;
-  const sugRow = `<div class="sug"><span>Precio meta (${Math.round(meta*100)}%): <b>${money(sug)}</b></span><button type="button" onclick="usarSugerido(${sug.toFixed(2)})">Usar</button></div>`;
+  const sugRow = `<div class="sug"><span>Precio ideal: <b>${money(sug)}</b></span><button type="button" onclick="usarSugerido(${sug.toFixed(2)})">Usar</button></div>`;
   if(precio<=0){
-    box.innerHTML=`<span class="lt">Cálculo automático</span>${costoRow}${sugRow}<div class="empty-live">Pon el precio para ver el margen.</div>`;
+    box.innerHTML=`<span class="lt">Cálculo automático</span>${sugRow}<div class="empty-live">Pon el precio para ver si está bien.</div>`;
     btn.disabled=true; return;
   }
-  const margen=(precio-p.costo)/precio, pisoPrice=p.costo/(1-f.floor);
+  const margen=(precio-p.costo)/precio;
   const cls = margen<f.alert?'bad':(margen<f.floor?'warn':'good');
-  const badge = margen<f.alert
-    ? `<div class="badge bad">⚠ Muy bajo${CFG.hideCost?'':` — piso ${money(pisoPrice)}`}</div>`
-    : (margen<f.floor
-      ? `<div class="badge warn">Cerca del piso${CFG.hideCost?'':` — sugerido ${money(pisoPrice)}`}</div>`
-      : `<div class="badge good">✓ Buen margen</div>`);
+  const sf = cls==='bad' ? {msg:'Precio muy bajo', sub:'Súbelo antes de vender'}
+    : cls==='warn' ? {msg:'Precio justo', sub:'Puedes subirlo un poco'}
+    : {msg:'Precio correcto', sub:'Buen precio para cerrar'};
+  const semaforo = `<div class="semaforo ${cls}">
+      <div class="sf-housing"><span class="sf-dot red"></span><span class="sf-dot amber"></span><span class="sf-dot green"></span></div>
+      <div><div class="sf-msg">${sf.msg}</div><div class="sf-sub">${sf.sub}</div></div>
+    </div>`;
   box.innerHTML=`
     <span class="lt">Cálculo automático</span>
-    ${costoRow}
     <div class="lrow"><span>Tu precio</span><b class="num">${money(precio)}</b></div>
     <div class="lrow"><span>Cantidad</span><b class="num">${cant||1}</b></div>
-    <div class="lrow big"><span>Margen</span><span class="mgnum ${cls}">${(margen*100).toFixed(1)}%</span></div>
-    ${CFG.hideCost?'':`<div class="lrow"><span>Utilidad total</span><b class="num">${money((precio-p.costo)*(cant||1))}</b></div>`}
-    ${sugRow}${badge}`;
+    ${semaforo}
+    ${sugRow}`;
   btn.disabled = !(cant>0 && precio>0);
 }
 /* ===== Carrito de cotización ===== */
@@ -481,19 +490,18 @@ function renderCart(){
   const foot=document.getElementById("cartFoot");
   if(!items.length){ foot.innerHTML=""; return; }
   const total=items.reduce((s,i)=>s+i.subtotal,0);
-  const costoT=items.reduce((s,i)=>s+i.costo*i.cant,0);
-  const util=total-costoT, mg=total?util/total:0;
-  // margen interno del carrito: rojo/ámbar si ALGUNA línea baja de su piso (mezcla plancha/canto)
+  // semáforo del carrito: rojo/ámbar si ALGUNA línea baja de su piso (mezcla plancha/canto)
   const lineMg = it => (it.precio-it.costo)/it.precio;
   const anyBad  = items.some(it=>lineMg(it) < CFG.floors[it.tipo||(it.costo<5?'canto':'plancha')].alert);
   const anyWarn = items.some(it=>lineMg(it) < CFG.floors[it.tipo||(it.costo<5?'canto':'plancha')].floor);
   const cls = anyBad?'bad':(anyWarn?'warn':'good');
+  const sfTxt = anyBad?'Revisar precios':(anyWarn?'Precios justos':'Precios OK');
   foot.innerHTML=`
     <div class="cart-total">
       <div><div class="tl">Total a cobrar</div><div class="tv num">${money(total)}</div></div>
       <div style="text-align:right">
-        <span class="pill ${cls}" title="Solo tú ves esto">Margen interno ${(mg*100).toFixed(1)}%</span>
-        <div style="font-size:11.5px;color:var(--muted);margin-top:4px">No aparece en la imagen del cliente</div>
+        <span class="pill ${cls}" title="Solo tú ves esto">● ${sfTxt}</span>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Guía tuya, no aparece al cliente</div>
       </div>
     </div>
     <div class="cart-acts">
@@ -673,24 +681,24 @@ function renderVend(){
   document.getElementById("vGreet").textContent="Hola, "+USER.name.split(" ")[0];
   document.getElementById("fCliente").value = CART.cliente || "";
   const mine=Store.all().filter(v=>v.vendedora===USER.name).sort((a,b)=>b.ts-a.ts);
-  const venta=mine.reduce((s,v)=>s+v.venta,0), util=mine.reduce((s,v)=>s+v.util,0);
-  const mg=venta?util/venta*100:0, low=mine.filter(belowFloor).length;
+  const venta=mine.reduce((s,v)=>s+v.venta,0);
+  const low=mine.filter(belowFloor).length;
   document.getElementById("vChips").innerHTML=
     `<div class="chip"><b>${mine.length}</b> ventas</div>`+
     `<div class="chip"><b>${kf(venta)}</b> vendido</div>`+
-    `<div class="chip">margen <b>${mg.toFixed(1)}%</b></div>`+
-    (low?`<div class="chip" style="color:var(--bad)"><b>${low}</b> bajo piso</div>`:``);
+    (low?`<div class="chip" style="color:var(--bad)">⬤ <b>${low}</b> con precio bajo</div>`
+        :(mine.length?`<div class="chip" style="color:var(--good)">⬤ precios OK</div>`:``));
   document.getElementById("vCount").textContent=mine.length+" ventas";
   const tb=document.querySelector("#vTable tbody");
   tb.innerHTML = mine.slice(0,15).map(v=>{
-    return `<tr><td>${hhmm(v.ts)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Editar" onclick="editVenta('${v.id}')">✎</button><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`;
+    return `<tr><td>${hhmm(v.ts)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td><span class="dot ${mgCls(v)}" title="Estado del precio"></span></td><td class="act-cell"><button class="icon-btn" title="Editar" onclick="editVenta('${v.id}')">✎</button><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`;
   }).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Aún no registras ventas.</td></tr>`;
   buildDatalist();
   renderCart();
 }
 function buildDatalist(){
   const dl=document.getElementById("prodlist");
-  dl.innerHTML = PRODUCTS.map(p=>`<option value="${esc(p.nombre)}">${esc(p.cat)}${CFG.hideCost?'':' · costo '+money(p.costo)}</option>`).join("");
+  dl.innerHTML = PRODUCTS.map(p=>`<option value="${esc(p.nombre)}">${esc(p.cat)}</option>`).join("");
 }
 
 /* ===== Administrador ===== */
@@ -803,7 +811,6 @@ function openSettings(){
   g('ca_floor').value=Math.round(CFG.floors.canto.floor*100);
   g('ca_alert').value=Math.round(CFG.floors.canto.alert*100);
   g('ca_meta').value=Math.round(CFG.meta.canto*100);
-  g('cf_hideCost').checked=CFG.hideCost;
   g('settingsModal').classList.remove('hidden');
 }
 function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
@@ -812,7 +819,6 @@ function saveSettings(){
   CFG.floors.plancha={floor:pct('pl_floor'),alert:pct('pl_alert')};
   CFG.floors.canto={floor:pct('ca_floor'),alert:pct('ca_alert')};
   CFG.meta.plancha=pct('pl_meta'); CFG.meta.canto=pct('ca_meta');
-  CFG.hideCost=document.getElementById('cf_hideCost').checked;
   localStorage.setItem(CFG_K, JSON.stringify(CFG));
   closeSettings(); render(); toast("Ajustes guardados","good");
 }
