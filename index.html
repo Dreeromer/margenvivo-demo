@@ -153,6 +153,26 @@
   .hidden{display:none!important}
   .foot{max-width:1000px;margin:0 auto;padding:20px;color:var(--muted);font-size:12px;text-align:center}
   .foot code{background:var(--card);padding:1px 6px;border-radius:5px;border:1px solid var(--line)}
+
+  /* cotización / carrito */
+  #cartTable td button{padding:2px 8px}
+  .cart-total{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-top:14px}
+  .cart-total .tl{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .cart-total .tv{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1;margin-top:3px;color:var(--primary)}
+  .cart-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .modal-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:65;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
+  .modal-card{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:980px;width:100%;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .modal-head h2{font-size:16px}
+  .modal-body{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;padding:20px}
+  @media(max-width:780px){.modal-body{grid-template-columns:1fr}}
+  .pf-preview{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;align-items:flex-start;justify-content:center}
+  .pf-preview img{max-width:100%;height:auto;border-radius:6px;box-shadow:0 4px 18px rgba(0,0,0,.14)}
+  .pf-side{display:flex;flex-direction:column;gap:12px}
+  .pf-actions{display:flex;flex-direction:column;gap:8px}
+  .pf-config{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .pf-config summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--ink2)}
+  .pf-config .field{margin-top:10px}
 </style>
 
 <div class="topbar">
@@ -188,15 +208,15 @@
   <div class="row-head">
     <div>
       <h1 id="vGreet">Hola</h1>
-      <p class="sub">Registra una venta. El margen se calcula solo.</p>
+      <p class="sub">Arma la cotización del cliente. El margen se calcula solo (solo tú lo ves).</p>
     </div>
     <div class="chips" id="vChips" style="margin-left:auto"></div>
   </div>
   <div class="flow-cols">
     <div class="card">
-      <h2 id="vFormTitle">Nueva venta</h2>
+      <h2 id="vFormTitle">Agregar producto</h2>
       <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
-        <div class="field"><label class="label">Cliente</label><input id="fCliente" placeholder="Nombre del cliente" autocomplete="off"></div>
+        <div class="field"><label class="label">Cliente</label><input id="fCliente" placeholder="Nombre del cliente" autocomplete="off" oninput="onClienteInput()"></div>
         <div class="field"><label class="label">Producto (SKU)</label>
           <input id="fProd" list="prodlist" placeholder="Escribe o elige de la lista…" autocomplete="off" oninput="updateLive()">
           <datalist id="prodlist"></datalist>
@@ -205,10 +225,20 @@
           <div class="field"><label class="label">Cantidad</label><input id="fCant" type="number" min="1" step="1" value="1" oninput="updateLive()"></div>
           <div class="field"><label class="label">Precio venta (S/)</label><input id="fPrecio" type="number" min="0" step="0.01" placeholder="0.00" oninput="updateLive()"></div>
         </div>
-        <button class="btn primary" id="btnSave" onclick="registrar()" disabled>Registrar venta</button>
+        <button class="btn primary" id="btnSave" onclick="agregarItem()" disabled>Agregar ítem a la cotización</button>
       </div>
     </div>
     <div class="live" id="liveBox"></div>
+  </div>
+
+  <div class="card" id="cartCard" style="margin-top:18px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <h2>Cotización del cliente</h2>
+      <span id="cartCount" style="font-size:12.5px;color:var(--muted)"></span>
+      <button class="btn sm ghost" style="margin-left:auto" onclick="vaciarCart()">Vaciar</button>
+    </div>
+    <div class="tbl-wrap" style="margin-top:12px"><table id="cartTable"><thead><tr><th>Producto</th><th>Cant.</th><th>P. Unit</th><th>Subtotal</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div id="cartFoot"></div>
   </div>
 
   <div class="section-h"><h2>Mis ventas recientes</h2><span class="muted" id="vCount"></span></div>
@@ -270,6 +300,44 @@
 </div>
 
 <div class="foot" id="footNote"></div>
+
+<div id="proformaModal" class="modal-ov hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Proforma para el cliente</h2>
+      <button class="btn sm ghost" onclick="closeProforma()">Cerrar ✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="pf-preview"><img id="pfImg" alt="Vista previa de la cotización"></div>
+      <div class="pf-side">
+        <div class="pf-actions">
+          <button class="btn primary" onclick="shareProforma()">📲 Compartir por WhatsApp</button>
+          <button class="btn" onclick="downloadProforma()">⬇ Descargar imagen</button>
+        </div>
+        <details class="pf-config" open>
+          <summary>Datos del negocio y pago</summary>
+          <div class="field"><label class="label">Empresa</label><input id="cfgEmpresa" oninput="refreshProforma()"></div>
+          <div class="grid2">
+            <div class="field"><label class="label">RUC (opcional)</label><input id="cfgRuc" oninput="refreshProforma()"></div>
+            <div class="field"><label class="label">Validez (días)</label><input id="cfgValidez" type="number" min="1" oninput="refreshProforma()"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label class="label">Banco</label><input id="cfgBanco" oninput="refreshProforma()"></div>
+            <div class="field"><label class="label">N° de cuenta</label><input id="cfgCuenta" oninput="refreshProforma()"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label class="label">CCI</label><input id="cfgCci" oninput="refreshProforma()"></div>
+            <div class="field"><label class="label">Yape / Plin</label><input id="cfgYape" oninput="refreshProforma()"></div>
+          </div>
+          <div class="field"><label class="label">Titular de la cuenta</label><input id="cfgTitular" oninput="refreshProforma()"></div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="cfgIgv" style="width:auto" onchange="refreshProforma()"> Desglosar IGV (18%)</label>
+        </details>
+        <button class="btn primary" style="width:100%" onclick="registrarProformaVenta()">Registrar como ventas ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -320,6 +388,8 @@ let adminWeek = null; // timestamp de inicio de semana, o 'all'
 
 /* ===== Estado / sesión ===== */
 let USER = null; // {role:'vend'|'admin', name}
+let CART = {cliente:'',items:[]};
+let lastCanvas = null;
 function loginVendedora(){
   const n=document.getElementById("vName").value.trim();
   if(!n){document.getElementById("vName").focus();return;}
@@ -338,7 +408,7 @@ function render(){
   const right=document.getElementById("topRight");
   if(!USER){ login.classList.remove("hidden"); right.innerHTML=""; return; }
   right.innerHTML = `<span class="rolechip">${USER.role==='vend'?'Vendedora':'Administrador'}</span> ${esc(USER.name)} <button class="btn sm ghost" onclick="logout()">Salir</button>`;
-  if(USER.role==='vend'){ vend.classList.remove("hidden"); renderVend(); }
+  if(USER.role==='vend'){ CART=loadCart(); vend.classList.remove("hidden"); renderVend(); }
   else { admin.classList.remove("hidden"); renderAdmin(); }
 }
 
@@ -377,20 +447,216 @@ function updateLive(){
     <div class="lrow big"><span>Margen</span><span class="mgnum ${cls}">${(margen*100).toFixed(1)}%</span></div>
     ${CFG.hideCost?'':`<div class="lrow"><span>Utilidad total</span><b class="num">${money((precio-p.costo)*(cant||1))}</b></div>`}
     ${sugRow}${badge}`;
-  btn.disabled = !(cli && cant>0 && precio>0);
+  btn.disabled = !(cant>0 && precio>0);
 }
-function registrar(){
-  const p=currentProduct(); const cli=document.getElementById("fCliente").value.trim();
+/* ===== Carrito de cotización ===== */
+function cartKey(){ return 'mv_cart_'+(USER?USER.name:'x'); }
+function loadCart(){ try{return JSON.parse(localStorage.getItem(cartKey()))||{cliente:'',items:[]}}catch(e){return{cliente:'',items:[]}} }
+function saveCart(){ localStorage.setItem(cartKey(), JSON.stringify(CART)); }
+function onClienteInput(){ CART.cliente=document.getElementById("fCliente").value; saveCart(); updateLive(); }
+
+function agregarItem(){
+  const p=currentProduct();
   const cant=parseFloat(document.getElementById("fCant").value)||0;
   const precio=parseFloat(document.getElementById("fPrecio").value)||0;
-  if(!p||!cli||cant<=0||precio<=0)return;
-  const venta=precio*cant, costoT=p.costo*cant, util=venta-costoT;
-  Store.add({ id:genId(), ts:Date.now(), vendedora:USER.name, cliente:cli, sku:p.sku, producto:p.nombre, cat:p.cat, tipo:p.tipo,
-    cant, precio, costo:p.costo, venta, costoT, util, margen:util/venta });
-  toast("Venta registrada ✓","good");
-  document.getElementById("fCliente").value=""; document.getElementById("fProd").value="";
-  document.getElementById("fCant").value="1"; document.getElementById("fPrecio").value="";
-  updateLive(); renderVend(); document.getElementById("fCliente").focus();
+  if(!p||cant<=0||precio<=0)return;
+  CART.cliente=document.getElementById("fCliente").value.trim();
+  CART.items.push({producto:p.nombre,sku:p.sku,cat:p.cat,tipo:p.tipo,cant,precio,costo:p.costo,subtotal:precio*cant});
+  saveCart();
+  toast("Ítem agregado ✓","good");
+  document.getElementById("fProd").value=""; document.getElementById("fCant").value="1"; document.getElementById("fPrecio").value="";
+  updateLive(); renderCart(); document.getElementById("fProd").focus();
+}
+function removeItem(i){ CART.items.splice(i,1); saveCart(); renderCart(); }
+function vaciarCart(){ CART.items=[]; saveCart(); renderCart(); }
+
+function renderCart(){
+  const items=CART.items;
+  document.getElementById("cartCount").textContent = items.length? items.length+" ítem"+(items.length>1?"s":"") : "";
+  const tb=document.querySelector("#cartTable tbody");
+  tb.innerHTML = items.length ? items.map((it,i)=>
+    `<tr><td>${esc(it.producto)}</td><td class="num">${it.cant}</td><td class="num">${money(it.precio)}</td><td class="num">${money(it.subtotal)}</td>`+
+    `<td style="text-align:right"><button class="btn sm ghost" onclick="removeItem(${i})" title="Quitar">✕</button></td></tr>`
+  ).join("") : `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Agrega productos para armar la cotización.</td></tr>`;
+  const foot=document.getElementById("cartFoot");
+  if(!items.length){ foot.innerHTML=""; return; }
+  const total=items.reduce((s,i)=>s+i.subtotal,0);
+  const costoT=items.reduce((s,i)=>s+i.costo*i.cant,0);
+  const util=total-costoT, mg=total?util/total:0;
+  // margen interno del carrito: rojo/ámbar si ALGUNA línea baja de su piso (mezcla plancha/canto)
+  const lineMg = it => (it.precio-it.costo)/it.precio;
+  const anyBad  = items.some(it=>lineMg(it) < CFG.floors[it.tipo||(it.costo<5?'canto':'plancha')].alert);
+  const anyWarn = items.some(it=>lineMg(it) < CFG.floors[it.tipo||(it.costo<5?'canto':'plancha')].floor);
+  const cls = anyBad?'bad':(anyWarn?'warn':'good');
+  foot.innerHTML=`
+    <div class="cart-total">
+      <div><div class="tl">Total a cobrar</div><div class="tv num">${money(total)}</div></div>
+      <div style="text-align:right">
+        <span class="pill ${cls}" title="Solo tú ves esto">Margen interno ${(mg*100).toFixed(1)}%</span>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:4px">No aparece en la imagen del cliente</div>
+      </div>
+    </div>
+    <div class="cart-acts">
+      <button class="btn primary" onclick="generarProforma()">📄 Generar proforma (imagen)</button>
+      <button class="btn" onclick="registrarPedido()">Registrar como ventas</button>
+    </div>`;
+}
+
+function registrarPedido(){
+  if(!CART.items.length)return;
+  const cli=(CART.cliente||document.getElementById("fCliente").value.trim())||"Cliente";
+  const pedido=getSeq(); const base=Date.now();
+  CART.items.forEach((it,i)=>{
+    const venta=it.precio*it.cant, costoT=it.costo*it.cant, util=venta-costoT;
+    Store.add({ id:genId(), ts:base+i, cotiz:pedido, vendedora:USER.name, cliente:cli, sku:it.sku, producto:it.producto, cat:it.cat,
+      tipo:it.tipo||(it.costo<5?'canto':'plancha'), cant:it.cant, precio:it.precio, costo:it.costo, venta, costoT, util, margen:util/venta });
+  });
+  incSeq();
+  toast("Venta registrada ✓ ("+CART.items.length+" ítems)","good");
+  CART={cliente:'',items:[]}; saveCart();
+  document.getElementById("fCliente").value="";
+  renderVend();
+}
+
+/* ===== Config negocio / correlativo ===== */
+function defCfg(){ return {empresa:'Tablenorte',ruc:'',banco:'BCP',cuenta:'',cci:'',yape:'',titular:'',validez:5,igv:false}; }
+function getConfig(){ try{return Object.assign(defCfg(), JSON.parse(localStorage.getItem('mv_config'))||{})}catch(e){return defCfg()} }
+function saveConfig(c){ localStorage.setItem('mv_config', JSON.stringify(c)); }
+function getSeq(){ return parseInt(localStorage.getItem('mv_cotiz_seq')||'1000',10); }
+function incSeq(){ const n=getSeq()+1; localStorage.setItem('mv_cotiz_seq',String(n)); return n; }
+function fechaHoy(){ const d=new Date(); return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); }
+function val(id){ return document.getElementById(id).value.trim(); }
+function setV(id,v){ document.getElementById(id).value = v==null?'':v; }
+
+/* ===== Proforma (imagen) ===== */
+function generarProforma(){
+  if(!CART.items.length){ toast("Agrega ítems primero","bad"); return; }
+  if(!(CART.cliente||document.getElementById("fCliente").value.trim())){ toast("Escribe el nombre del cliente","bad"); return; }
+  const cfg=getConfig();
+  setV('cfgEmpresa',cfg.empresa); setV('cfgRuc',cfg.ruc); setV('cfgValidez',cfg.validez);
+  setV('cfgBanco',cfg.banco); setV('cfgCuenta',cfg.cuenta); setV('cfgCci',cfg.cci);
+  setV('cfgYape',cfg.yape); setV('cfgTitular',cfg.titular||cfg.empresa);
+  document.getElementById('cfgIgv').checked=!!cfg.igv;
+  document.getElementById('proformaModal').classList.remove('hidden');
+  refreshProforma();
+}
+function closeProforma(){ document.getElementById('proformaModal').classList.add('hidden'); }
+function registrarProformaVenta(){ registrarPedido(); closeProforma(); }
+function readCfgForm(){
+  return { empresa:val('cfgEmpresa')||'Mi Negocio', ruc:val('cfgRuc'), banco:val('cfgBanco'),
+    cuenta:val('cfgCuenta'), cci:val('cfgCci'), yape:val('cfgYape'), titular:val('cfgTitular'),
+    validez:parseInt(val('cfgValidez'))||5, igv:document.getElementById('cfgIgv').checked };
+}
+function refreshProforma(){
+  const cfg=readCfgForm(); saveConfig(cfg);
+  const cli=CART.cliente||document.getElementById("fCliente").value.trim();
+  lastCanvas=renderProformaCanvas(cli, CART.items, {num:'COT-'+getSeq(), fecha:fechaHoy(), cfg});
+  document.getElementById('pfImg').src=lastCanvas.toDataURL('image/png');
+}
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath(); }
+function fitText(ctx,txt,maxW){ if(ctx.measureText(txt).width<=maxW)return txt; let s=txt; while(s.length>1&&ctx.measureText(s+"…").width>maxW)s=s.slice(0,-1); return s+"…"; }
+
+function renderProformaCanvas(cliente, items, opts){
+  const cfg=opts.cfg, S=2, W=760, big=document.createElement('canvas');
+  big.width=W*S; big.height=3000*S; const ctx=big.getContext('2d'); ctx.scale(S,S);
+  const teal='#0E9C8A', ink='#0F172A', ink2='#475569', muted='#94A3B8', line='#E7ECF1';
+  const pad=44, sX=W-pad, uX=W-pad-118, qX=W-pad-226, nameMaxW=qX-70-pad;
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,3000);
+  ctx.fillStyle=teal; ctx.fillRect(0,0,W,7);
+  let y=56;
+  ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font='800 26px system-ui,sans-serif';
+  ctx.fillText(fitText(ctx,cfg.empresa,W*0.6), pad, y);
+  ctx.textAlign='right';
+  ctx.fillStyle=teal; ctx.font='800 13px system-ui'; ctx.fillText('COTIZACIÓN', sX, y-16);
+  ctx.fillStyle=ink2; ctx.font='700 13px system-ui'; ctx.fillText(opts.num, sX, y);
+  ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText(opts.fecha, sX, y+18);
+  ctx.textAlign='left';
+  if(cfg.ruc){ y+=22; ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText('RUC '+cfg.ruc, pad, y); }
+  y+=30;
+  ctx.fillStyle=ink2; ctx.font='600 13px system-ui'; ctx.fillText('Cliente:', pad, y);
+  ctx.fillStyle=ink; ctx.font='700 14px system-ui'; ctx.fillText(fitText(ctx,cliente||'—',W-pad-120), pad+62, y);
+  y+=16;
+  ctx.strokeStyle=line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
+  y+=24;
+  ctx.fillStyle=muted; ctx.font='700 11px system-ui'; ctx.textAlign='left'; ctx.fillText('PRODUCTO', pad, y);
+  ctx.textAlign='right'; ctx.fillText('CANT', qX, y); ctx.fillText('P. UNIT', uX, y); ctx.fillText('SUBTOTAL', sX, y);
+  ctx.textAlign='left'; y+=8;
+  ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
+  items.forEach(it=>{
+    y+=30;
+    ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font='500 13px system-ui';
+    ctx.fillText(fitText(ctx,it.producto,nameMaxW), pad, y);
+    ctx.textAlign='right'; ctx.fillStyle=ink2; ctx.font='400 13px system-ui';
+    ctx.fillText(String(it.cant), qX, y); ctx.fillText(money(it.precio), uX, y);
+    ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.fillText(money(it.subtotal), sX, y);
+    y+=10; ctx.strokeStyle='#F1F5F9'; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
+  });
+  const total=items.reduce((s,i)=>s+i.subtotal,0);
+  if(cfg.igv){
+    const base=total/1.18, igv=total-base;
+    y+=22; ctx.textAlign='right'; ctx.fillStyle=ink2; ctx.font='400 13px system-ui';
+    ctx.fillText('Op. gravada', uX, y); ctx.fillStyle=ink; ctx.font='600 13px system-ui'; ctx.fillText(money(base), sX, y);
+    y+=20; ctx.fillStyle=ink2; ctx.font='400 13px system-ui'; ctx.fillText('IGV (18%)', uX, y);
+    ctx.fillStyle=ink; ctx.font='600 13px system-ui'; ctx.fillText(money(igv), sX, y);
+    ctx.textAlign='left';
+  }
+  y+=18;
+  const boxH=54; ctx.fillStyle='#F0FBF9'; roundRect(ctx,pad,y,W-2*pad,boxH,10); ctx.fill();
+  ctx.fillStyle=teal; ctx.font='800 14px system-ui'; ctx.textAlign='left'; ctx.fillText('TOTAL A DEPOSITAR', pad+18, y+33);
+  ctx.font='800 26px system-ui'; ctx.textAlign='right'; ctx.fillText(money(total), W-pad-18, y+36);
+  y+=boxH+26;
+  const paypairs=[];
+  if(cfg.banco||cfg.cuenta) paypairs.push(['Cuenta '+(cfg.banco||''), cfg.cuenta||'—']);
+  if(cfg.cci) paypairs.push(['CCI', cfg.cci]);
+  if(cfg.yape) paypairs.push(['Yape / Plin', cfg.yape]);
+  if(cfg.titular) paypairs.push(['Titular', cfg.titular]);
+  const rows=Math.max(1,paypairs.length), payH=28+24+rows*24+12;
+  ctx.fillStyle='#F8FAFC'; roundRect(ctx,pad,y,W-2*pad,payH,10); ctx.fill();
+  ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.textAlign='left'; ctx.fillText('Para confirmar tu pedido, deposita a:', pad+16, y+28);
+  let py=y+28+26;
+  if(paypairs.length){ paypairs.forEach(([l,v])=>{
+    ctx.fillStyle=ink2; ctx.font='400 13px system-ui'; ctx.textAlign='left'; ctx.fillText(l, pad+16, py);
+    ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.textAlign='right'; ctx.fillText(v, W-pad-16, py); py+=24;
+  }); } else { ctx.fillStyle=muted; ctx.font='400 13px system-ui'; ctx.fillText('(configura tus datos de pago)', pad+16, py); }
+  y+=payH+28;
+  ctx.textAlign='left'; ctx.fillStyle=muted; ctx.font='400 11.5px system-ui';
+  ctx.fillText('Cotización válida por '+cfg.validez+' días · Precios en soles (S/) '+(cfg.igv?'· IGV incluido':'· precio final'), pad, y);
+  y+=18; ctx.fillText('Generado con MargenVivo', pad, y);
+  y+=pad;
+  const out=document.createElement('canvas'); out.width=W*S; out.height=Math.round(y*S);
+  out.getContext('2d').drawImage(big, 0,0, W*S, out.height, 0,0, W*S, out.height);
+  return out;
+}
+
+function downloadProforma(){
+  if(!lastCanvas)return;
+  const a=document.createElement('a'); a.download='Cotizacion_'+getSeq()+'.png'; a.href=lastCanvas.toDataURL('image/png');
+  document.body.appendChild(a); a.click(); a.remove(); toast("Imagen descargada ✓","good");
+}
+function buildWaText(cli){
+  const cfg=getConfig(); const total=CART.items.reduce((s,i)=>s+i.subtotal,0);
+  let t=`*${cfg.empresa}* — Cotización\n`; if(cli)t+=`Cliente: ${cli}\n`; t+='\n';
+  CART.items.forEach(i=>{ t+=`• ${i.producto} x${i.cant} = ${money(i.subtotal)}\n`; });
+  t+=`\n*TOTAL A DEPOSITAR: ${money(total)}*\n`;
+  const p=[]; if(cfg.banco||cfg.cuenta)p.push((cfg.banco+' '+cfg.cuenta).trim());
+  if(cfg.cci)p.push('CCI '+cfg.cci); if(cfg.yape)p.push('Yape/Plin '+cfg.yape);
+  if(p.length)t+='\nDepositar a:\n'+p.join('\n')+'\n';
+  t+=`\nCotización válida ${cfg.validez} días.`;
+  return t;
+}
+function shareProforma(){
+  if(!lastCanvas)return;
+  const cli=CART.cliente||document.getElementById("fCliente").value.trim();
+  const txt=buildWaText(cli);
+  lastCanvas.toBlob(async(blob)=>{
+    const file=new File([blob],'cotizacion.png',{type:'image/png'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], text:txt}); return; }catch(e){ if(e&&e.name==='AbortError')return; }
+    }
+    downloadProforma();
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+    toast("Imagen descargada — adjúntala en WhatsApp","good");
+  },'image/png');
 }
 function editVenta(id){
   const v=Store.all().find(x=>x.id===id); if(!v)return;
@@ -401,10 +667,11 @@ function editVenta(id){
   document.getElementById("fPrecio").value=v.precio;
   updateLive(); renderVend();
   document.getElementById("fCliente").scrollIntoView({behavior:"smooth",block:"center"});
-  toast("Editando venta — corrige y vuelve a registrar","good");
+  toast("Editando — corrígela y agrégala de nuevo a la cotización","good");
 }
 function renderVend(){
   document.getElementById("vGreet").textContent="Hola, "+USER.name.split(" ")[0];
+  document.getElementById("fCliente").value = CART.cliente || "";
   const mine=Store.all().filter(v=>v.vendedora===USER.name).sort((a,b)=>b.ts-a.ts);
   const venta=mine.reduce((s,v)=>s+v.venta,0), util=mine.reduce((s,v)=>s+v.util,0);
   const mg=venta?util/venta*100:0, low=mine.filter(belowFloor).length;
@@ -419,6 +686,7 @@ function renderVend(){
     return `<tr><td>${hhmm(v.ts)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Editar" onclick="editVenta('${v.id}')">✎</button><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`;
   }).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Aún no registras ventas.</td></tr>`;
   buildDatalist();
+  renderCart();
 }
 function buildDatalist(){
   const dl=document.getElementById("prodlist");
