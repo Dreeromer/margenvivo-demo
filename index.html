@@ -522,9 +522,10 @@ async function loadAll(){
     if(mg && mg.data){ CFG=mg.data; } else { CFG=JSON.parse(JSON.stringify(DEFAULT_CFG)); await SB.from('margenes').insert({id:1,data:CFG}); }
     let { data:cor } = await SB.from('correlativo').select('*').eq('id',1).maybeSingle();
     if(cor){ _seq=cor.seq; } else { _seq=1000; await SB.from('correlativo').insert({id:1,seq:1000}); }
-    let all=[], from=0, PAGE=1000;   // Supabase corta en 1000 por request -> paginar
+    let all=[], from=0, PAGE=1000;   // Supabase corta en 1000/request -> paginar
+    // ordenar por 'id' (único): paginar por 'ts' salta/duplica filas porque muchas comparten ts (mismo día)
     while(true){
-      const { data:vs, error } = await SB.from('ventas').select('*').order('ts',{ascending:true}).range(from, from+PAGE-1);
+      const { data:vs, error } = await SB.from('ventas').select('*').order('id',{ascending:true}).range(from, from+PAGE-1);
       if(error){ console.error(error); break; }
       all=all.concat(vs||[]);
       if(!vs || vs.length<PAGE) break;
