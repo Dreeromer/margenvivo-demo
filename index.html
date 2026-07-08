@@ -302,6 +302,23 @@
         <div class="field"><label class="label">Meta %</label><input id="ca_meta" type="number" min="0" max="99" step="1"></div>
       </div>
     </div>
+    <div class="cfg-sec">
+      <div class="st">Datos de pago <span class="tag">solo admin</span></div>
+      <p class="sub" style="font-size:12px;margin:2px 0 8px">Salen en la cotización formal. La vendedora solo edita el nombre (empresa/persona natural) y el RUC/DNI.</p>
+      <div class="grid2">
+        <div class="field"><label class="label">Banco</label><input id="set_banco"></div>
+        <div class="field"><label class="label">N° de cuenta</label><input id="set_cuenta"></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="field"><label class="label">CCI</label><input id="set_cci"></div>
+        <div class="field"><label class="label">Yape / Plin</label><input id="set_yape"></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="field"><label class="label">Titular de la cuenta</label><input id="set_titular"></div>
+        <div class="field"><label class="label">Validez (días)</label><input id="set_validez" type="number" min="1"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="set_igv" style="width:auto"> Desglosar IGV (18%) en la cotización formal</label>
+    </div>
     <p class="sub" style="font-size:12px;margin:2px 0 0">La vendedora nunca ve costos ni márgenes: solo un semáforo que le dice si el precio está bien.</p>
     <div class="m-actions">
       <button class="btn ghost" onclick="closeSettings()">Cancelar</button>
@@ -315,7 +332,7 @@
 <div id="proformaModal" class="modal-ov hidden">
   <div class="modal-card">
     <div class="modal-head">
-      <h2>Proforma para el cliente</h2>
+      <h2>Proforma para el cliente <span id="pfKind" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:7px;background:var(--primary-soft);color:var(--primary-d);vertical-align:middle"></span></h2>
       <button class="btn sm ghost" onclick="closeProforma()">Cerrar ✕</button>
     </div>
     <div class="modal-body">
@@ -326,22 +343,10 @@
           <button class="btn" onclick="downloadProforma()">⬇ Descargar imagen</button>
         </div>
         <details class="pf-config" open>
-          <summary>Datos del negocio y pago</summary>
-          <div class="field"><label class="label">Empresa</label><input id="cfgEmpresa" oninput="refreshProforma()"></div>
-          <div class="grid2">
-            <div class="field"><label class="label">RUC (opcional)</label><input id="cfgRuc" oninput="refreshProforma()"></div>
-            <div class="field"><label class="label">Validez (días)</label><input id="cfgValidez" type="number" min="1" oninput="refreshProforma()"></div>
-          </div>
-          <div class="grid2">
-            <div class="field"><label class="label">Banco</label><input id="cfgBanco" oninput="refreshProforma()"></div>
-            <div class="field"><label class="label">N° de cuenta</label><input id="cfgCuenta" oninput="refreshProforma()"></div>
-          </div>
-          <div class="grid2">
-            <div class="field"><label class="label">CCI</label><input id="cfgCci" oninput="refreshProforma()"></div>
-            <div class="field"><label class="label">Yape / Plin</label><input id="cfgYape" oninput="refreshProforma()"></div>
-          </div>
-          <div class="field"><label class="label">Titular de la cuenta</label><input id="cfgTitular" oninput="refreshProforma()"></div>
-          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="cfgIgv" style="width:auto" onchange="refreshProforma()"> Desglosar IGV (18%)</label>
+          <summary>Datos del negocio</summary>
+          <div class="field"><label class="label">Empresa / persona natural</label><input id="cfgEmpresa" oninput="refreshProforma()"></div>
+          <div class="field"><label class="label">RUC / DNI (opcional)</label><input id="cfgRuc" oninput="refreshProforma()"></div>
+          <p class="sub" style="font-size:11.5px;margin:10px 0 0">Los datos de pago (banco, cuenta, Yape/Plin) e IGV los configura el administrador y salen en la cotización formal.</p>
         </details>
         <button class="btn primary" style="width:100%" onclick="registrarProformaVenta()">Registrar como ventas ✓</button>
       </div>
@@ -400,6 +405,7 @@ let adminWeek = null; // timestamp de inicio de semana, o 'all'
 let USER = null; // {role:'vend'|'admin', name}
 let CART = {cliente:'',items:[]};
 let lastCanvas = null;
+let pfMode = 'formal';   // 'simple' (WhatsApp) | 'formal'
 function loginVendedora(){
   const n=document.getElementById("vName").value.trim();
   if(!n){document.getElementById("vName").focus();return;}
@@ -505,8 +511,9 @@ function renderCart(){
       </div>
     </div>
     <div class="cart-acts">
-      <button class="btn primary" onclick="generarProforma()">📄 Generar proforma (imagen)</button>
-      <button class="btn" onclick="registrarPedido()">Registrar como ventas</button>
+      <button class="btn primary" onclick="generarProforma('simple')">📲 Enviar por WhatsApp</button>
+      <button class="btn" onclick="generarProforma('formal')">📄 Cotización formal</button>
+      <button class="btn ghost" onclick="registrarPedido()">Registrar como ventas</button>
     </div>`;
 }
 
@@ -537,49 +544,51 @@ function val(id){ return document.getElementById(id).value.trim(); }
 function setV(id,v){ document.getElementById(id).value = v==null?'':v; }
 
 /* ===== Proforma (imagen) ===== */
-function generarProforma(){
+function generarProforma(mode){
+  pfMode = mode==='simple' ? 'simple' : 'formal';
   if(!CART.items.length){ toast("Agrega ítems primero","bad"); return; }
   if(!(CART.cliente||document.getElementById("fCliente").value.trim())){ toast("Escribe el nombre del cliente","bad"); return; }
   const cfg=getConfig();
-  setV('cfgEmpresa',cfg.empresa); setV('cfgRuc',cfg.ruc); setV('cfgValidez',cfg.validez);
-  setV('cfgBanco',cfg.banco); setV('cfgCuenta',cfg.cuenta); setV('cfgCci',cfg.cci);
-  setV('cfgYape',cfg.yape); setV('cfgTitular',cfg.titular||cfg.empresa);
-  document.getElementById('cfgIgv').checked=!!cfg.igv;
+  setV('cfgEmpresa',cfg.empresa); setV('cfgRuc',cfg.ruc);
+  document.getElementById('pfKind').textContent = pfMode==='simple' ? 'WhatsApp · simple' : 'Formal';
   document.getElementById('proformaModal').classList.remove('hidden');
   refreshProforma();
 }
 function closeProforma(){ document.getElementById('proformaModal').classList.add('hidden'); }
 function registrarProformaVenta(){ registrarPedido(); closeProforma(); }
 function readCfgForm(){
-  return { empresa:val('cfgEmpresa')||'Mi Negocio', ruc:val('cfgRuc'), banco:val('cfgBanco'),
-    cuenta:val('cfgCuenta'), cci:val('cfgCci'), yape:val('cfgYape'), titular:val('cfgTitular'),
-    validez:parseInt(val('cfgValidez'))||5, igv:document.getElementById('cfgIgv').checked };
+  // La vendedora solo edita empresa + RUC/DNI; el resto (datos de pago, validez, IGV) lo mantiene el admin.
+  return Object.assign(getConfig(), { empresa:val('cfgEmpresa')||'Mi Negocio', ruc:val('cfgRuc') });
 }
 function refreshProforma(){
   const cfg=readCfgForm(); saveConfig(cfg);
   const cli=CART.cliente||document.getElementById("fCliente").value.trim();
-  lastCanvas=renderProformaCanvas(cli, CART.items, {num:'COT-'+getSeq(), fecha:fechaHoy(), cfg});
+  lastCanvas=renderProformaCanvas(cli, CART.items, {num:'COT-'+getSeq(), fecha:fechaHoy(), cfg, simple:pfMode==='simple'});
   document.getElementById('pfImg').src=lastCanvas.toDataURL('image/png');
 }
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath(); }
 function fitText(ctx,txt,maxW){ if(ctx.measureText(txt).width<=maxW)return txt; let s=txt; while(s.length>1&&ctx.measureText(s+"…").width>maxW)s=s.slice(0,-1); return s+"…"; }
 
 function renderProformaCanvas(cliente, items, opts){
-  const cfg=opts.cfg, S=2, W=760, big=document.createElement('canvas');
+  const cfg=opts.cfg, simple=!!opts.simple, S=2, W=760, big=document.createElement('canvas');
   big.width=W*S; big.height=3000*S; const ctx=big.getContext('2d'); ctx.scale(S,S);
   const teal='#0E9C8A', ink='#0F172A', ink2='#475569', muted='#94A3B8', line='#E7ECF1';
-  const pad=44, sX=W-pad, uX=W-pad-118, qX=W-pad-226, nameMaxW=qX-70-pad;
+  const pad=44, sX=W-pad, uX=W-pad-118, qX=W-pad-226;
+  const cantX = simple ? uX : qX;                 // en simple no hay P.UNIT: CANT se acerca al subtotal
+  const nameMaxW = cantX-70-pad;
   ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,W,3000);
   ctx.fillStyle=teal; ctx.fillRect(0,0,W,7);
   let y=56;
-  ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font='800 26px system-ui,sans-serif';
-  ctx.fillText(fitText(ctx,cfg.empresa,W*0.6), pad, y);
+  if(!simple){
+    ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font='800 26px system-ui,sans-serif';
+    ctx.fillText(fitText(ctx,cfg.empresa,W*0.6), pad, y);
+  }
   ctx.textAlign='right';
   ctx.fillStyle=teal; ctx.font='800 13px system-ui'; ctx.fillText('COTIZACIÓN', sX, y-16);
   ctx.fillStyle=ink2; ctx.font='700 13px system-ui'; ctx.fillText(opts.num, sX, y);
   ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText(opts.fecha, sX, y+18);
   ctx.textAlign='left';
-  if(cfg.ruc){ y+=22; ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText('RUC '+cfg.ruc, pad, y); }
+  if(!simple && cfg.ruc){ y+=22; ctx.fillStyle=muted; ctx.font='400 12px system-ui'; ctx.fillText('RUC '+cfg.ruc, pad, y); }
   y+=30;
   ctx.fillStyle=ink2; ctx.font='600 13px system-ui'; ctx.fillText('Cliente:', pad, y);
   ctx.fillStyle=ink; ctx.font='700 14px system-ui'; ctx.fillText(fitText(ctx,cliente||'—',W-pad-120), pad+62, y);
@@ -587,7 +596,7 @@ function renderProformaCanvas(cliente, items, opts){
   ctx.strokeStyle=line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
   y+=24;
   ctx.fillStyle=muted; ctx.font='700 11px system-ui'; ctx.textAlign='left'; ctx.fillText('PRODUCTO', pad, y);
-  ctx.textAlign='right'; ctx.fillText('CANT', qX, y); ctx.fillText('P. UNIT', uX, y); ctx.fillText('SUBTOTAL', sX, y);
+  ctx.textAlign='right'; ctx.fillText('CANT', cantX, y); if(!simple) ctx.fillText('P. UNIT', uX, y); ctx.fillText('SUBTOTAL', sX, y);
   ctx.textAlign='left'; y+=8;
   ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
   items.forEach(it=>{
@@ -595,12 +604,12 @@ function renderProformaCanvas(cliente, items, opts){
     ctx.textAlign='left'; ctx.fillStyle=ink; ctx.font='500 13px system-ui';
     ctx.fillText(fitText(ctx,it.producto,nameMaxW), pad, y);
     ctx.textAlign='right'; ctx.fillStyle=ink2; ctx.font='400 13px system-ui';
-    ctx.fillText(String(it.cant), qX, y); ctx.fillText(money(it.precio), uX, y);
+    ctx.fillText(String(it.cant), cantX, y); if(!simple) ctx.fillText(money(it.precio), uX, y);
     ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.fillText(money(it.subtotal), sX, y);
     y+=10; ctx.strokeStyle='#F1F5F9'; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke();
   });
   const total=items.reduce((s,i)=>s+i.subtotal,0);
-  if(cfg.igv){
+  if(cfg.igv && !simple){
     const base=total/1.18, igv=total-base;
     y+=22; ctx.textAlign='right'; ctx.fillStyle=ink2; ctx.font='400 13px system-ui';
     ctx.fillText('Op. gravada', uX, y); ctx.fillStyle=ink; ctx.font='600 13px system-ui'; ctx.fillText(money(base), sX, y);
@@ -613,22 +622,24 @@ function renderProformaCanvas(cliente, items, opts){
   ctx.fillStyle=teal; ctx.font='800 14px system-ui'; ctx.textAlign='left'; ctx.fillText('TOTAL A DEPOSITAR', pad+18, y+33);
   ctx.font='800 26px system-ui'; ctx.textAlign='right'; ctx.fillText(money(total), W-pad-18, y+36);
   y+=boxH+26;
-  const paypairs=[];
-  if(cfg.banco||cfg.cuenta) paypairs.push(['Cuenta '+(cfg.banco||''), cfg.cuenta||'—']);
-  if(cfg.cci) paypairs.push(['CCI', cfg.cci]);
-  if(cfg.yape) paypairs.push(['Yape / Plin', cfg.yape]);
-  if(cfg.titular) paypairs.push(['Titular', cfg.titular]);
-  const rows=Math.max(1,paypairs.length), payH=28+24+rows*24+12;
-  ctx.fillStyle='#F8FAFC'; roundRect(ctx,pad,y,W-2*pad,payH,10); ctx.fill();
-  ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.textAlign='left'; ctx.fillText('Para confirmar tu pedido, deposita a:', pad+16, y+28);
-  let py=y+28+26;
-  if(paypairs.length){ paypairs.forEach(([l,v])=>{
-    ctx.fillStyle=ink2; ctx.font='400 13px system-ui'; ctx.textAlign='left'; ctx.fillText(l, pad+16, py);
-    ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.textAlign='right'; ctx.fillText(v, W-pad-16, py); py+=24;
-  }); } else { ctx.fillStyle=muted; ctx.font='400 13px system-ui'; ctx.fillText('(configura tus datos de pago)', pad+16, py); }
-  y+=payH+28;
+  if(!simple){
+    const paypairs=[];
+    if(cfg.banco||cfg.cuenta) paypairs.push(['Cuenta '+(cfg.banco||''), cfg.cuenta||'—']);
+    if(cfg.cci) paypairs.push(['CCI', cfg.cci]);
+    if(cfg.yape) paypairs.push(['Yape / Plin', cfg.yape]);
+    if(cfg.titular) paypairs.push(['Titular', cfg.titular]);
+    const rows=Math.max(1,paypairs.length), payH=28+24+rows*24+12;
+    ctx.fillStyle='#F8FAFC'; roundRect(ctx,pad,y,W-2*pad,payH,10); ctx.fill();
+    ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.textAlign='left'; ctx.fillText('Para confirmar tu pedido, deposita a:', pad+16, y+28);
+    let py=y+28+26;
+    if(paypairs.length){ paypairs.forEach(([l,v])=>{
+      ctx.fillStyle=ink2; ctx.font='400 13px system-ui'; ctx.textAlign='left'; ctx.fillText(l, pad+16, py);
+      ctx.fillStyle=ink; ctx.font='700 13px system-ui'; ctx.textAlign='right'; ctx.fillText(v, W-pad-16, py); py+=24;
+    }); } else { ctx.fillStyle=muted; ctx.font='400 13px system-ui'; ctx.fillText('(el administrador configura los datos de pago)', pad+16, py); }
+    y+=payH+28;
+  }
   ctx.textAlign='left'; ctx.fillStyle=muted; ctx.font='400 11.5px system-ui';
-  ctx.fillText('Cotización válida por '+cfg.validez+' días · Precios en soles (S/) '+(cfg.igv?'· IGV incluido':'· precio final'), pad, y);
+  ctx.fillText('Cotización válida por '+cfg.validez+' días · Precios en soles (S/) '+(cfg.igv&&!simple?'· IGV incluido':'· precio final'), pad, y);
   y+=18; ctx.fillText('Generado con MargenVivo', pad, y);
   y+=pad;
   const out=document.createElement('canvas'); out.width=W*S; out.height=Math.round(y*S);
@@ -641,21 +652,24 @@ function downloadProforma(){
   const a=document.createElement('a'); a.download='Cotizacion_'+getSeq()+'.png'; a.href=lastCanvas.toDataURL('image/png');
   document.body.appendChild(a); a.click(); a.remove(); toast("Imagen descargada ✓","good");
 }
-function buildWaText(cli){
+function buildWaText(cli, simple){
   const cfg=getConfig(); const total=CART.items.reduce((s,i)=>s+i.subtotal,0);
-  let t=`*${cfg.empresa}* — Cotización\n`; if(cli)t+=`Cliente: ${cli}\n`; t+='\n';
+  let t = simple ? `*Cotización*\n` : `*${cfg.empresa}* — Cotización\n`;
+  if(cli)t+=`Cliente: ${cli}\n`; t+='\n';
   CART.items.forEach(i=>{ t+=`• ${i.producto} x${i.cant} = ${money(i.subtotal)}\n`; });
   t+=`\n*TOTAL A DEPOSITAR: ${money(total)}*\n`;
-  const p=[]; if(cfg.banco||cfg.cuenta)p.push((cfg.banco+' '+cfg.cuenta).trim());
-  if(cfg.cci)p.push('CCI '+cfg.cci); if(cfg.yape)p.push('Yape/Plin '+cfg.yape);
-  if(p.length)t+='\nDepositar a:\n'+p.join('\n')+'\n';
+  if(!simple){
+    const p=[]; if(cfg.banco||cfg.cuenta)p.push((cfg.banco+' '+cfg.cuenta).trim());
+    if(cfg.cci)p.push('CCI '+cfg.cci); if(cfg.yape)p.push('Yape/Plin '+cfg.yape);
+    if(p.length)t+='\nDepositar a:\n'+p.join('\n')+'\n';
+  }
   t+=`\nCotización válida ${cfg.validez} días.`;
   return t;
 }
 function shareProforma(){
   if(!lastCanvas)return;
   const cli=CART.cliente||document.getElementById("fCliente").value.trim();
-  const txt=buildWaText(cli);
+  const txt=buildWaText(cli, pfMode==='simple');
   lastCanvas.toBlob(async(blob)=>{
     const file=new File([blob],'cotizacion.png',{type:'image/png'});
     if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -811,6 +825,10 @@ function openSettings(){
   g('ca_floor').value=Math.round(CFG.floors.canto.floor*100);
   g('ca_alert').value=Math.round(CFG.floors.canto.alert*100);
   g('ca_meta').value=Math.round(CFG.meta.canto*100);
+  const c=getConfig();
+  g('set_banco').value=c.banco; g('set_cuenta').value=c.cuenta; g('set_cci').value=c.cci;
+  g('set_yape').value=c.yape; g('set_titular').value=c.titular; g('set_validez').value=c.validez;
+  g('set_igv').checked=!!c.igv;
   g('settingsModal').classList.remove('hidden');
 }
 function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
@@ -820,6 +838,12 @@ function saveSettings(){
   CFG.floors.canto={floor:pct('ca_floor'),alert:pct('ca_alert')};
   CFG.meta.plancha=pct('pl_meta'); CFG.meta.canto=pct('ca_meta');
   localStorage.setItem(CFG_K, JSON.stringify(CFG));
+  const g=id=>document.getElementById(id);
+  saveConfig(Object.assign(getConfig(), {
+    banco:g('set_banco').value.trim(), cuenta:g('set_cuenta').value.trim(), cci:g('set_cci').value.trim(),
+    yape:g('set_yape').value.trim(), titular:g('set_titular').value.trim(),
+    validez:parseInt(g('set_validez').value)||5, igv:g('set_igv').checked
+  }));
   closeSettings(); render(); toast("Ajustes guardados","good");
 }
 
