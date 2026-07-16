@@ -112,7 +112,7 @@
   /* admin */
   .toolbar{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
   .toolbar select{width:auto;padding:7px 11px;font-size:13px}
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
   @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
   .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
@@ -264,6 +264,7 @@
     <div class="toolbar">
       <select id="weekSel" onchange="onWeekChange(this.value)"></select>
       <button class="btn sm" onclick="exportCSV()">⬇ Exportar</button>
+      <button class="btn sm" onclick="openInventory()">📊 Inventario</button>
       <button class="btn sm" onclick="openCatalog()">📦 Productos</button>
       <button class="btn sm" onclick="openSettings()">⚙ Ajustes</button>
     </div>
@@ -378,6 +379,37 @@
   </div>
 </div>
 
+<!-- INVENTARIO MODAL (admin) -->
+<div id="inventoryModal" class="overlay hidden">
+  <div class="modal" style="max-width:720px">
+    <h2>Inventario</h2>
+    <p class="sub" style="margin:4px 0 0;font-size:13px">Controla el stock de cada producto. Cada venta lo descuenta solo. Los servicios no tienen stock.</p>
+    <div class="cfg-sec">
+      <div class="st">Registrar recepción <span class="tag">llegó mercadería</span></div>
+      <div class="grid2">
+        <div class="field"><label class="label">Producto</label><input id="rc_prod" list="invProdList" placeholder="Escribe o elige…" autocomplete="off"></div>
+        <div class="field"><label class="label">Cantidad que llegó</label><input id="rc_cant" type="number" min="1" step="1" placeholder="0"></div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="field"><label class="label">Nota (opcional)</label><input id="rc_nota" placeholder="Proveedor, N° de guía…"></div>
+        <div class="field" style="display:flex;align-items:flex-end"><button class="btn primary" style="width:100%" onclick="registrarRecepcion()">＋ Sumar al stock</button></div>
+      </div>
+      <datalist id="invProdList"></datalist>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin:16px 0 8px;flex-wrap:wrap">
+      <input id="invSearch" placeholder="Buscar producto…" oninput="renderInventory()" style="flex:1;min-width:160px">
+      <div class="seg" id="invFilters">
+        <button class="seg-b active" data-f="track" onclick="setInvFilter('track')">Con seguimiento</button>
+        <button class="seg-b" data-f="low" onclick="setInvFilter('low')">Bajo/agotado</button>
+        <button class="seg-b" data-f="all" onclick="setInvFilter('all')">Todos</button>
+      </div>
+    </div>
+    <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table id="invTable"><thead><tr><th>Producto</th><th>Stock</th><th>Mín</th><th>Estado</th><th>Seguir</th></tr></thead><tbody></tbody></table></div>
+    <div class="cfg-sec" id="recepList"></div>
+    <div class="m-actions"><button class="btn primary" onclick="closeInventory()">Listo</button></div>
+  </div>
+</div>
+
 <div class="foot" id="footNote"></div>
 
 <div id="proformaModal" class="modal-ov hidden">
@@ -417,12 +449,28 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 let SB=null; try{ SB = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ console.error('Supabase no cargó', e); }
 
 /* ===== Catálogo (en la nube · editable por el admin) ===== */
-function normalizeCat(list){ list.forEach(p=>{ if(!p.tipo) p.tipo = p.costo < 5 ? 'canto' : 'plancha'; }); return list; }   // servicios traen tipo:'servicio'
+function normalizeCat(list){ list.forEach(p=>{
+  if(!p.tipo) p.tipo = p.costo < 5 ? 'canto' : 'plancha';   // servicios traen tipo:'servicio'
+  p.stock = Number(p.stock)||0; p.stock_min = Number(p.stock_min)||0;
+  if(p.track===undefined||p.track===null) p.track = false;   // inventario arranca dormido: se activa al cargar stock
+  if(p.tipo==='servicio') p.track = false;                   // los servicios no tienen stock
+}); return list; }
 let PRODUCTS = normalizeCat(JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)));
-let BY_NAME = {};
-function rebuildIndex(){ BY_NAME = Object.fromEntries(PRODUCTS.map(p=>[p.nombre.toUpperCase(),p])); }
+let BY_NAME = {}, BY_SKU = {};
+function rebuildIndex(){ BY_NAME = Object.fromEntries(PRODUCTS.map(p=>[p.nombre.toUpperCase(),p])); BY_SKU = Object.fromEntries(PRODUCTS.map(p=>[p.sku,p])); }
 rebuildIndex();
-const catRow = p => ({sku:p.sku, nombre:p.nombre, cat:p.cat, costo:p.costo, tipo:p.tipo, est:!!p.est});
+const catRow = p => ({sku:p.sku, nombre:p.nombre, cat:p.cat, costo:p.costo, tipo:p.tipo, est:!!p.est, stock:Number(p.stock)||0, stock_min:Number(p.stock_min)||0, track:!!p.track});
+
+/* ===== Inventario / Kardex ===== */
+// estado: 'off' (no se controla) · 'out' (agotado) · 'low' (bajo el mínimo) · 'ok'
+const stockStatus = p => (!p.track||p.tipo==='servicio') ? 'off' : (p.stock<=0 ? 'out' : (p.stock<=p.stock_min ? 'low' : 'ok'));
+async function moverStock(sku, delta){   // suma/resta stock de forma ATÓMICA en la nube (evita descuadres con varias vendedoras)
+  if(!SB) return; const p=BY_SKU[sku];
+  try{ const { data, error } = await SB.rpc('mover_stock',{p_sku:sku, p_delta:delta});
+    if(error){ console.error('mover_stock',error); return; }
+    if(p && data!=null) p.stock=Number(data);
+  }catch(e){ console.error('moverStock',e); }
+}
 async function saveCatalog(){
   rebuildIndex();
   const skus=PRODUCTS.map(p=>p.sku);
@@ -583,10 +631,18 @@ function updateLive(){
       <div class="sf-housing"><span class="sf-dot red"></span><span class="sf-dot amber"></span><span class="sf-dot green"></span></div>
       <div><div class="sf-msg">${sf.msg}</div><div class="sf-sub">${sf.sub}</div></div>
     </div>`;
+  let stockRow='';
+  const st=stockStatus(p);
+  if(st!=='off'){
+    const cc = st==='out'?'bad':(st==='low'?'warn':'good');
+    const lbl = st==='out'?'· agotado':(st==='low'?'· queda poco':'disponible');
+    stockRow=`<div class="lrow"><span>Stock</span><b class="num" style="color:var(--${cc})">${p.stock} ${lbl}</b></div>`;
+  }
   box.innerHTML=`
     <span class="lt">Cálculo automático</span>
     <div class="lrow"><span>Tu precio</span><b class="num">${money(precio)}</b></div>
     <div class="lrow"><span>Cantidad</span><b class="num">${cant||1}</b></div>
+    ${stockRow}
     ${semaforo}
     ${sugRow}`;
   btn.disabled = !(cant>0 && precio>0);
@@ -654,10 +710,18 @@ function registrarPedido(){
       tipo:it.tipo||(it.costo<5?'canto':'plancha'), cant:it.cant, precio:it.precio, costo:it.costo, venta, costoT, util, margen:util/venta });
   });
   incSeq();
+  descontarStockPedido(CART.items);
   toast("Venta registrada ✓ ("+CART.items.length+" ítems)","good");
   CART={cliente:'',items:[]}; saveCart();
   document.getElementById("fCliente").value="";
   renderVend();
+}
+
+// descuenta stock de los productos vendidos (agrupa líneas del mismo SKU; ignora servicios y no-seguidos)
+function descontarStockPedido(items){
+  const deltas={};
+  items.forEach(it=>{ const p=BY_SKU[it.sku]; if(p && p.track && p.tipo!=='servicio') deltas[it.sku]=(deltas[it.sku]||0)+it.cant; });
+  Object.entries(deltas).forEach(([sku,c])=>moverStock(sku,-c));
 }
 
 /* ===== Config negocio / correlativo ===== */
@@ -861,12 +925,14 @@ function renderAdmin(){
   const all=filteredAdmin(); _aAll=all;
   const venta=all.reduce((s,v)=>s+v.venta,0), util=all.reduce((s,v)=>s+v.util,0);
   const mg=venta?util/venta*100:0, low=all.filter(belowFloor).length;
+  const lowStock = PRODUCTS.filter(p=>{const s=stockStatus(p);return s==='low'||s==='out';}).length;
   document.getElementById("aSub").textContent = (adminWeek==='all'?'Histórico completo':'Semana '+weekLabel(adminWeek))+` · ${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
   document.getElementById("aKpis").innerHTML=[
     {kl:"Venta",kv:kf(venta)},{kl:"Utilidad",kv:kf(util),c:"good"},
     {kl:"Margen",kv:mg.toFixed(1)+"%"},{kl:"# Ventas",kv:all.length},
     {kl:"Bajo piso",kv:low,c:low?"warn":""},
-  ].map(k=>`<div class="kpi"><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
+    {kl:"Stock bajo",kv:lowStock,c:lowStock?"warn":"",click:"openInventory('low')"},
+  ].map(k=>`<div class="kpi"${k.click?` style="cursor:pointer" onclick="${k.click}" title="Ver inventario"`:''}><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
 
   // ranking vendedoras (+ crecimiento vs semana anterior)
   const bySeller={};
@@ -1001,14 +1067,84 @@ function addProducto(){
   const costo=serv?0:(parseFloat(document.getElementById('np_costo').value)||0);
   if(!nombre){ toast('Escribe el nombre del producto','bad'); return; }
   if(BY_NAME[nombre.toUpperCase()]){ toast('Ya existe un producto con ese nombre','bad'); return; }
-  PRODUCTS.push({nombre,cat,costo,sku:nextSku(),tipo: serv?'servicio':(costo<5?'canto':'plancha')});
+  PRODUCTS.push({nombre,cat,costo,sku:nextSku(),tipo: serv?'servicio':(costo<5?'canto':'plancha'),stock:0,stock_min:0,track:false});
   rebuildIndex();
   document.getElementById('np_nombre').value=''; document.getElementById('np_costo').value=''; document.getElementById('np_serv').checked=false; toggleNpServ();
   fillCatList(); renderCatalog(); toast('Producto agregado ✓','good');
 }
 function delProducto(idx){ PRODUCTS.splice(idx,1); rebuildIndex(); fillCatList(); renderCatalog(); }
 async function saveCatalogEdits(){ await saveCatalog(); buildDatalist(); closeCatalog(); toast('Catálogo guardado ✓','good'); }
-async function resetCatalog(){ PRODUCTS=normalizeCat(JSON.parse(JSON.stringify(DEFAULT_PRODUCTS))); await saveCatalog(); rebuildIndex(); buildDatalist(); fillCatList(); renderCatalog(); toast('Catálogo restaurado al original','good'); }
+async function resetCatalog(){
+  const prev=Object.fromEntries(PRODUCTS.map(p=>[p.sku,{stock:p.stock,stock_min:p.stock_min,track:p.track}]));   // conservar existencias
+  PRODUCTS=normalizeCat(JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)));
+  PRODUCTS.forEach(p=>{ const o=prev[p.sku]; if(o){ p.stock=o.stock; p.stock_min=o.stock_min; p.track=o.track; } });
+  await saveCatalog(); rebuildIndex(); buildDatalist(); fillCatList(); renderCatalog(); toast('Catálogo restaurado (el stock se mantuvo)','good');
+}
+
+/* ===== Inventario (admin) ===== */
+let invFilter='track';
+function openInventory(filter){
+  invFilter = filter||'track';
+  document.querySelectorAll('#invFilters .seg-b').forEach(b=>b.classList.toggle('active',b.dataset.f===invFilter));
+  document.getElementById('invSearch').value='';
+  document.getElementById('rc_prod').value=''; document.getElementById('rc_cant').value=''; document.getElementById('rc_nota').value='';
+  document.getElementById('invProdList').innerHTML = PRODUCTS.filter(p=>p.tipo!=='servicio').map(p=>`<option value="${esc(p.nombre)}">${esc(p.cat)}</option>`).join('');
+  renderInventory();
+  document.getElementById('inventoryModal').classList.remove('hidden');
+  loadRecepciones();
+}
+function closeInventory(){ document.getElementById('inventoryModal').classList.add('hidden'); if(USER&&USER.role==='admin') renderAdmin(); }
+function setInvFilter(f){ invFilter=f; document.querySelectorAll('#invFilters .seg-b').forEach(b=>b.classList.toggle('active',b.dataset.f===f)); renderInventory(); }
+function invBadge(p){ const s=stockStatus(p);
+  if(s==='off') return '<span class="pill" style="background:var(--bg);color:var(--muted)">sin seguir</span>';
+  if(s==='out') return '<span class="pill bad">agotado</span>';
+  if(s==='low') return '<span class="pill warn">bajo</span>';
+  return '<span class="pill good">ok</span>';
+}
+function renderInventory(){
+  const q=document.getElementById('invSearch').value.trim().toUpperCase();
+  let rows=PRODUCTS.filter(p=>p.tipo!=='servicio');
+  if(invFilter==='track') rows=rows.filter(p=>p.track);
+  else if(invFilter==='low') rows=rows.filter(p=>{const s=stockStatus(p);return s==='low'||s==='out';});
+  if(q) rows=rows.filter(p=>p.nombre.toUpperCase().includes(q)||(p.cat||'').toUpperCase().includes(q));
+  document.querySelector('#invTable tbody').innerHTML = rows.map(p=>
+    `<tr><td>${esc(p.nombre)}<div style="font-size:11px;color:var(--muted)">${esc(p.cat||'')}</div></td>`+
+    `<td><input type="number" min="0" step="1" value="${p.stock}" style="width:78px" onchange="setStock('${p.sku}',this.value)"></td>`+
+    `<td><input type="number" min="0" step="1" value="${p.stock_min}" style="width:70px" onchange="setStockMin('${p.sku}',this.value)"></td>`+
+    `<td>${invBadge(p)}</td>`+
+    `<td style="text-align:center"><input type="checkbox" ${p.track?'checked':''} onchange="setTrack('${p.sku}',this.checked)" style="width:auto"></td></tr>`
+  ).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">${invFilter==='track'?'Aún no controlas ningún producto. Marca «Seguir» o escribe su stock.':'Sin resultados.'}</td></tr>`;
+}
+function persistStockField(sku, patch){ if(!SB) return; SB.from('catalogo').update(patch).eq('sku',sku).then(r=>{ if(r.error){ console.error(r.error); toast('Error guardando','bad'); } }); }
+function setStock(sku,v){ const p=BY_SKU[sku]; if(!p)return; const n=Math.max(0,Math.round(parseFloat(v)||0)); p.stock=n; p.track=true; persistStockField(sku,{stock:n,track:true}); renderInventory(); }
+function setStockMin(sku,v){ const p=BY_SKU[sku]; if(!p)return; const n=Math.max(0,Math.round(parseFloat(v)||0)); p.stock_min=n; persistStockField(sku,{stock_min:n}); renderInventory(); }
+function setTrack(sku,checked){ const p=BY_SKU[sku]; if(!p)return; p.track=!!checked; persistStockField(sku,{track:!!checked}); renderInventory(); }
+async function registrarRecepcion(){
+  const name=document.getElementById('rc_prod').value.trim();
+  const cant=Math.round(parseFloat(document.getElementById('rc_cant').value)||0);
+  const nota=document.getElementById('rc_nota').value.trim();
+  const p=BY_NAME[name.toUpperCase()];
+  if(!p){ toast('Elige un producto válido de la lista','bad'); return; }
+  if(p.tipo==='servicio'){ toast('Los servicios no tienen stock','bad'); return; }
+  if(!(cant>0)){ toast('Escribe cuánto llegó','bad'); return; }
+  if(!p.track){ p.track=true; persistStockField(p.sku,{track:true}); }
+  await moverStock(p.sku, cant);
+  if(SB){ const r=await SB.from('recepciones').insert({ts:Date.now(),sku:p.sku,producto:p.nombre,cant,costo:p.costo,nota:nota||null,usuario:USER?USER.name:''}); if(r.error)console.error(r.error); }
+  document.getElementById('rc_prod').value=''; document.getElementById('rc_cant').value=''; document.getElementById('rc_nota').value='';
+  toast('Entrada registrada: +'+cant+' '+p.nombre,'good');
+  renderInventory(); loadRecepciones();
+}
+async function loadRecepciones(){
+  const box=document.getElementById('recepList');
+  if(!SB){ box.innerHTML=''; return; }
+  const { data, error } = await SB.from('recepciones').select('*').order('id',{ascending:false}).limit(12);
+  if(error){ console.error(error); box.innerHTML=''; return; }
+  const list=data||[];
+  if(!list.length){ box.innerHTML='<div class="st">Últimas entradas</div><div style="color:var(--muted);font-size:12.5px;padding:4px 0">Aún no registras recepciones.</div>'; return; }
+  box.innerHTML='<div class="st">Últimas entradas</div>'+list.map(r=>
+    `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line)"><span>${esc(r.producto||r.sku)} ${r.nota?`<span style="color:var(--muted)">· ${esc(r.nota)}</span>`:''}</span><span style="white-space:nowrap"><b style="color:var(--good)">+${r.cant}</b> <span style="color:var(--muted)">${ddmm(Number(r.ts))}</span></span></div>`
+  ).join('');
+}
 
 /* ===== Exportar CSV ===== */
 function csvCell(x){ x=String(x); return /[";\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }
