@@ -112,7 +112,7 @@
   /* admin */
   .toolbar{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
   .toolbar select{width:auto;padding:7px 11px;font-size:13px}
-  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
   @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
   .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
@@ -228,7 +228,7 @@
     <div class="card">
       <h2 id="vFormTitle">Agregar producto</h2>
       <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px">
-        <div class="field"><label class="label">Cliente</label><input id="fCliente" placeholder="Nombre del cliente" autocomplete="off" oninput="onClienteInput()"></div>
+        <div class="field"><label class="label">Cliente</label><input id="fCliente" placeholder="Nombre del cliente" autocomplete="off" oninput="onClienteInput()"><div id="cliHint" class="hint" style="margin-top:6px"></div></div>
         <div class="field"><label class="label">Producto (SKU)</label>
           <input id="fProd" list="prodlist" placeholder="Escribe o elige de la lista…" autocomplete="off" oninput="updateLive()">
           <datalist id="prodlist"></datalist>
@@ -264,6 +264,7 @@
     <div class="toolbar">
       <select id="weekSel" onchange="onWeekChange(this.value)"></select>
       <button class="btn sm" onclick="exportCSV()">⬇ Exportar</button>
+      <button class="btn sm" onclick="openCreditos()">💳 Créditos</button>
       <button class="btn sm" onclick="openInventory()">📊 Inventario</button>
       <button class="btn sm" onclick="openCatalog()">📦 Productos</button>
       <button class="btn sm" onclick="openSettings()">⚙ Ajustes</button>
@@ -410,6 +411,43 @@
   </div>
 </div>
 
+<!-- CRÉDITOS MODAL (admin) -->
+<div id="creditosModal" class="overlay hidden">
+  <div class="modal" style="max-width:720px">
+    <div style="display:flex;align-items:center;gap:10px"><h2>Créditos / Fiado</h2><button class="btn sm ghost" style="margin-left:auto" onclick="closeCreditos()">Cerrar ✕</button></div>
+    <p class="sub" style="margin:4px 0 0;font-size:13px">Cuentas por cobrar. Una venta se marca «fiado» al registrarla; aquí registras los abonos.</p>
+    <div class="kpis" id="credKpis" style="grid-template-columns:repeat(3,1fr);margin-top:16px"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin:16px 0 8px;flex-wrap:wrap">
+      <input id="credSearch" placeholder="Buscar cliente…" oninput="renderCreditos()" style="flex:1;min-width:160px">
+      <button class="btn sm primary" onclick="openAbono('')">＋ Registrar abono</button>
+    </div>
+    <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table id="credTable"><thead><tr><th>Cliente</th><th>Fiado</th><th>Abonado</th><th>Saldo</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="cfg-sec" id="credDetail"></div>
+    <div class="m-actions"><button class="btn primary" onclick="closeCreditos()">Listo</button></div>
+  </div>
+</div>
+
+<!-- ABONO MODAL (vendedora + admin) -->
+<div id="abonoModal" class="overlay hidden" style="z-index:66">
+  <div class="modal" style="max-width:420px">
+    <h2>Registrar abono</h2>
+    <p class="sub" style="margin:4px 0 0;font-size:13px">Pago que hace el cliente a su cuenta fiada.</p>
+    <div class="cfg-sec">
+      <div class="field"><label class="label">Cliente</label><input id="ab_cli" list="abCliList" placeholder="Nombre del cliente" oninput="onAbonoCli()"><datalist id="abCliList"></datalist></div>
+      <div class="lrow" style="margin-top:8px"><span>Saldo actual</span><b id="ab_saldo" class="num">S/ 0.00</b></div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label class="label">Monto (S/)</label><input id="ab_monto" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="field"><label class="label">Método</label><select id="ab_metodo"><option>Efectivo</option><option>Yape / Plin</option><option>Transferencia</option><option>Depósito</option></select></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label class="label">Nota (opcional)</label><input id="ab_nota" placeholder="N° de operación, referencia…"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn ghost" onclick="closeAbono()">Cancelar</button>
+      <button class="btn primary" onclick="saveAbono()">Registrar abono</button>
+    </div>
+  </div>
+</div>
+
 <div class="foot" id="footNote"></div>
 
 <div id="proformaModal" class="modal-ov hidden">
@@ -501,9 +539,9 @@ const belowFloor = v => v.margen < floorsOf(v).floor;
 
 /* ===== Capa de datos: ventas en la nube (Supabase) con caché en memoria ===== */
 const ventaToDb = v => ({ id:v.id, ts:v.ts, cotiz:v.cotiz, vendedora:v.vendedora, cliente:v.cliente, cliente_doc:v.cliente_doc||null,
-  sku:v.sku, producto:v.producto, cat:v.cat, tipo:v.tipo, cant:v.cant, precio:v.precio, venta:v.venta, costo:v.costo, costo_t:v.costoT, util:v.util, margen:v.margen });
+  sku:v.sku, producto:v.producto, cat:v.cat, tipo:v.tipo, cant:v.cant, precio:v.precio, venta:v.venta, costo:v.costo, costo_t:v.costoT, util:v.util, margen:v.margen, pago:v.pago||'contado' });
 const dbToVenta = r => ({ id:r.id, ts:Number(r.ts), cotiz:r.cotiz, vendedora:r.vendedora, cliente:r.cliente, cliente_doc:r.cliente_doc,
-  sku:r.sku, producto:r.producto, cat:r.cat, tipo:r.tipo, cant:Number(r.cant), precio:Number(r.precio), venta:Number(r.venta), costo:Number(r.costo), costoT:Number(r.costo_t), util:Number(r.util), margen:Number(r.margen) });
+  sku:r.sku, producto:r.producto, cat:r.cat, tipo:r.tipo, cant:Number(r.cant), precio:Number(r.precio), venta:Number(r.venta), costo:Number(r.costo), costoT:Number(r.costo_t), util:Number(r.util), margen:Number(r.margen), pago:r.pago||'contado' });
 const Store = {
   _ventas: [],
   all(){ return this._ventas; },
@@ -511,6 +549,17 @@ const Store = {
   add(v){ this._ventas.push(v); SB.from('ventas').insert(ventaToDb(v)).then(r=>{ if(r.error){ console.error(r.error); toast('Error guardando la venta','bad'); } }); },
   remove(id){ this._ventas=this._ventas.filter(v=>v.id!==id); SB.from('ventas').delete().eq('id',id).then(r=>{ if(r.error)console.error(r.error); }); },
 };
+
+/* ===== Créditos / Fiado (cuentas por cobrar) ===== */
+let _abonos = [];   // {id, ts, cliente, monto, metodo, nota, usuario}
+const cliKey = s => (s||'').trim().toUpperCase();   // agrupa al cliente sin importar mayúsculas/espacios
+function creditAccounts(){   // saldo por cliente = ventas al crédito − abonos
+  const acc={};
+  Store.all().forEach(v=>{ if(v.pago==='credito'){ const k=cliKey(v.cliente); (acc[k]=acc[k]||{name:v.cliente,fiado:0,abonado:0,ultima:0}); acc[k].fiado+=v.venta; acc[k].name=v.cliente; if(v.ts>acc[k].ultima)acc[k].ultima=v.ts; } });
+  _abonos.forEach(a=>{ const k=cliKey(a.cliente); (acc[k]=acc[k]||{name:a.cliente,fiado:0,abonado:0,ultima:0}); acc[k].abonado+=Number(a.monto); if(Number(a.ts)>acc[k].ultima)acc[k].ultima=Number(a.ts); });
+  return Object.entries(acc).map(([k,d])=>({key:k,...d,saldo:d.fiado-d.abonado}));
+}
+const saldoOf = cliente => { const k=cliKey(cliente); const a=creditAccounts().find(x=>x.key===k); return a?a.saldo:0; };
 const money = n => "S/ "+(n||0).toLocaleString("es-PE",{minimumFractionDigits:2,maximumFractionDigits:2});
 const money0 = n => "S/ "+Math.round(n||0).toLocaleString("es-PE");
 const kf = n => Math.abs(n)>=1000 ? "S/ "+(n/1000).toFixed(n>=10000?0:1)+"k" : money0(n);
@@ -580,6 +629,7 @@ async function loadAll(){
       from+=PAGE;
     }
     Store._ventas=all.map(dbToVenta);
+    try{ const { data:ab } = await SB.from('abonos').select('*').order('id',{ascending:true}); _abonos = ab||[]; }catch(e){ console.error('abonos',e); _abonos=[]; }
   }catch(e){ console.error('loadAll',e); toast('Error cargando datos de la nube','bad'); }
 }
 
@@ -649,9 +699,18 @@ function updateLive(){
 }
 /* ===== Carrito de cotización ===== */
 function cartKey(){ return 'mv_cart_'+(USER?USER.name:'x'); }
-function loadCart(){ try{return JSON.parse(localStorage.getItem(cartKey()))||{cliente:'',items:[]}}catch(e){return{cliente:'',items:[]}} }
+function loadCart(){ try{const c=JSON.parse(localStorage.getItem(cartKey()))||{}; return {cliente:c.cliente||'',items:c.items||[],pago:c.pago||'contado',clienteDoc:c.clienteDoc||''};}catch(e){return{cliente:'',items:[],pago:'contado'}} }
 function saveCart(){ localStorage.setItem(cartKey(), JSON.stringify(CART)); }
-function onClienteInput(){ CART.cliente=document.getElementById("fCliente").value; saveCart(); updateLive(); }
+function setCartPago(p){ CART.pago = p==='credito'?'credito':'contado'; saveCart(); renderCart(); }
+function onClienteInput(){ CART.cliente=document.getElementById("fCliente").value; saveCart(); updateLive(); renderCart(); updateCliHint(); }
+function updateCliHint(){
+  const el=document.getElementById('cliHint'); if(!el)return;
+  const cli=(document.getElementById('fCliente').value||'').trim();
+  const s = cli ? saldoOf(cli) : 0;
+  el.innerHTML = s>0
+    ? `<span style="color:var(--warn);font-weight:600">⚠ Este cliente debe ${money(s)}</span> · <span style="color:var(--primary);cursor:pointer;font-weight:600" onclick="openAbono('${esc(cli).replace(/'/g,"\\'")}')">Registrar abono</span>`
+    : '';
+}
 
 function agregarItem(){
   const p=currentProduct();
@@ -685,6 +744,8 @@ function renderCart(){
   const anyWarn = items.some(it=>lineMg(it) < floorsFor(it.tipo||(it.costo<5?'canto':'plancha')).floor);
   const cls = anyBad?'bad':(anyWarn?'warn':'good');
   const sfTxt = anyBad?'Revisar precios':(anyWarn?'Precios justos':'Precios OK');
+  const pago = CART.pago==='credito'?'credito':'contado';
+  const saldo = CART.cliente ? saldoOf(CART.cliente) : 0;
   foot.innerHTML=`
     <div class="cart-total">
       <div><div class="tl">Total a cobrar</div><div class="tv num">${money(total)}</div></div>
@@ -693,26 +754,35 @@ function renderCart(){
         <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Guía tuya, no aparece al cliente</div>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+      <span class="tl">Cobro</span>
+      <div class="seg">
+        <button class="seg-b ${pago==='contado'?'active':''}" onclick="setCartPago('contado')">Contado</button>
+        <button class="seg-b ${pago==='credito'?'active':''}" onclick="setCartPago('credito')">Fiado (crédito)</button>
+      </div>
+      ${saldo>0?`<span class="pill warn" title="Deuda actual del cliente">⚠ Este cliente debe ${money(saldo)}</span> <button class="btn sm ghost" onclick="openAbono('${esc(CART.cliente).replace(/'/g,"\\'")}')">Registrar abono</button>`:''}
+    </div>
     <div class="cart-acts">
       <button class="btn primary" onclick="generarProforma('simple')">📲 Enviar por WhatsApp</button>
       <button class="btn" onclick="generarProforma('formal')">📄 Cotización formal</button>
-      <button class="btn ghost" onclick="registrarPedido()">Registrar como ventas</button>
+      <button class="btn ghost" onclick="registrarPedido()">${pago==='credito'?'Registrar al fiado':'Registrar como ventas'}</button>
     </div>`;
 }
 
 function registrarPedido(){
   if(!CART.items.length)return;
   const cli=(CART.cliente||document.getElementById("fCliente").value.trim())||"Cliente";
+  const pago = CART.pago==='credito' ? 'credito' : 'contado';
   const pedido=getSeq(); const base=Date.now();
   CART.items.forEach((it,i)=>{
     const venta=it.precio*it.cant, costoT=it.costo*it.cant, util=venta-costoT;
     Store.add({ id:genId(), ts:base+i, cotiz:pedido, vendedora:USER.name, cliente:cli, sku:it.sku, producto:it.producto, cat:it.cat,
-      tipo:it.tipo||(it.costo<5?'canto':'plancha'), cant:it.cant, precio:it.precio, costo:it.costo, venta, costoT, util, margen:util/venta });
+      tipo:it.tipo||(it.costo<5?'canto':'plancha'), cant:it.cant, precio:it.precio, costo:it.costo, venta, costoT, util, margen:util/venta, pago });
   });
   incSeq();
   descontarStockPedido(CART.items);
-  toast("Venta registrada ✓ ("+CART.items.length+" ítems)","good");
-  CART={cliente:'',items:[]}; saveCart();
+  toast(pago==='credito' ? "Venta al fiado registrada ✓ ("+CART.items.length+" ítems)" : "Venta registrada ✓ ("+CART.items.length+" ítems)","good");
+  CART={cliente:'',items:[],pago:'contado'}; saveCart();
   document.getElementById("fCliente").value="";
   renderVend();
 }
@@ -902,6 +972,7 @@ function renderVend(){
   }).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Aún no registras ventas.</td></tr>`;
   buildDatalist();
   renderCart();
+  updateCliHint();
 }
 function buildDatalist(){
   const dl=document.getElementById("prodlist");
@@ -926,13 +997,15 @@ function renderAdmin(){
   const venta=all.reduce((s,v)=>s+v.venta,0), util=all.reduce((s,v)=>s+v.util,0);
   const mg=venta?util/venta*100:0, low=all.filter(belowFloor).length;
   const lowStock = PRODUCTS.filter(p=>{const s=stockStatus(p);return s==='low'||s==='out';}).length;
+  const porCobrar = creditAccounts().reduce((s,a)=>s+(a.saldo>0?a.saldo:0),0);
   document.getElementById("aSub").textContent = (adminWeek==='all'?'Histórico completo':'Semana '+weekLabel(adminWeek))+` · ${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
   document.getElementById("aKpis").innerHTML=[
     {kl:"Venta",kv:kf(venta)},{kl:"Utilidad",kv:kf(util),c:"good"},
     {kl:"Margen",kv:mg.toFixed(1)+"%"},{kl:"# Ventas",kv:all.length},
     {kl:"Bajo piso",kv:low,c:low?"warn":""},
     {kl:"Stock bajo",kv:lowStock,c:lowStock?"warn":"",click:"openInventory('low')"},
-  ].map(k=>`<div class="kpi"${k.click?` style="cursor:pointer" onclick="${k.click}" title="Ver inventario"`:''}><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
+    {kl:"Por cobrar",kv:kf(porCobrar),c:porCobrar>0?"warn":"",click:"openCreditos()"},
+  ].map(k=>`<div class="kpi"${k.click?` style="cursor:pointer" onclick="${k.click}" title="Ver detalle"`:''}><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
 
   // ranking vendedoras (+ crecimiento vs semana anterior)
   const bySeller={};
@@ -992,7 +1065,7 @@ function renderTable(){
   document.getElementById("aCount").textContent=rows.length+" ventas";
   const tb=document.querySelector("#aTable tbody");
   tb.innerHTML = rows.slice().sort((a,b)=>b.ts-a.ts).slice(0,300).map(v=>
-    `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`
+    `<tr><td>${ddmm(v.ts)}</td><td>${esc(v.vendedora)}</td><td>${esc(v.cliente)}${v.pago==='credito'?' <span class="pill warn" style="font-size:10px;padding:1px 6px">fiado</span>':''}</td><td>${esc(v.producto)}</td><td class="num">${v.cant}</td><td class="num">${money(v.precio)}</td><td class="num">${money0(v.venta)}</td><td><span class="pill ${mgCls(v)}">${(v.margen*100).toFixed(1)}%</span></td><td class="act-cell"><button class="icon-btn" title="Eliminar" onclick="deleteVenta('${v.id}')">🗑</button></td></tr>`
   ).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px">Sin ventas en este periodo.</td></tr>`;
 }
 function renderTopProducts(){
@@ -1146,16 +1219,86 @@ async function loadRecepciones(){
   ).join('');
 }
 
+/* ===== Créditos / Fiado (admin) ===== */
+let _credSel=null;
+function openCreditos(){ document.getElementById('credSearch').value=''; _credSel=null; renderCreditos(); document.getElementById('creditosModal').classList.remove('hidden'); }
+function closeCreditos(){ document.getElementById('creditosModal').classList.add('hidden'); if(USER&&USER.role==='admin') renderAdmin(); }
+function credSelectCliente(key){ _credSel = _credSel===key?null:key; renderCreditos(); }
+function renderCreditos(){
+  const q=cliKey(document.getElementById('credSearch').value);
+  const accts=creditAccounts().filter(a=>Math.abs(a.saldo)>0.005).sort((a,b)=>b.saldo-a.saldo);
+  const porCobrar=accts.reduce((s,a)=>s+(a.saldo>0?a.saldo:0),0);
+  const deudores=accts.filter(a=>a.saldo>0.005).length;
+  const totalAbon=creditAccounts().reduce((s,a)=>s+a.abonado,0);
+  document.getElementById('credKpis').innerHTML=[
+    {kl:'Por cobrar',kv:money0(porCobrar),c:'warn'},
+    {kl:'Clientes que deben',kv:deudores},
+    {kl:'Total abonado',kv:money0(totalAbon),c:'good'},
+  ].map(k=>`<div class="kpi"><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join('');
+  const rows=accts.filter(a=>!q||a.key.includes(q));
+  document.querySelector('#credTable tbody').innerHTML = rows.map(a=>{
+    const sc = a.saldo>0.005?'bad':(a.saldo<-0.005?'good':'good');
+    const sLabel = a.saldo<-0.005?('a favor '+money(-a.saldo)):money(a.saldo);
+    const nm = esc(a.name).replace(/'/g,"\\'");
+    return `<tr><td>${esc(a.name)}</td><td class="num">${money(a.fiado)}</td><td class="num">${money(a.abonado)}</td>`+
+      `<td><span class="pill ${sc}">${sLabel}</span></td>`+
+      `<td class="act-cell"><button class="btn sm ghost" onclick="openAbono('${nm}')">Abono</button> <button class="icon-btn" title="Ver detalle" onclick="credSelectCliente('${a.key.replace(/'/g,"\\'")}')">${_credSel===a.key?'▴':'▾'}</button></td></tr>`;
+  }).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:16px">${accts.length?'Sin resultados.':'No hay ventas al fiado todavía.'}</td></tr>`;
+  renderCredDetail();
+}
+function renderCredDetail(){
+  const box=document.getElementById('credDetail'); if(!box)return;
+  if(!_credSel){ box.innerHTML=''; return; }
+  const movs=[];
+  Store.all().forEach(v=>{ if(v.pago==='credito'&&cliKey(v.cliente)===_credSel) movs.push({ts:v.ts,tipo:'cargo',desc:v.producto+' ×'+v.cant,monto:v.venta}); });
+  _abonos.forEach(a=>{ if(cliKey(a.cliente)===_credSel) movs.push({ts:Number(a.ts),tipo:'abono',desc:'Abono'+(a.metodo?' · '+a.metodo:'')+(a.nota?' · '+a.nota:''),monto:-Number(a.monto)}); });
+  movs.sort((a,b)=>a.ts-b.ts);
+  const acc=creditAccounts().find(x=>x.key===_credSel);
+  let bal=0;
+  box.innerHTML = `<div class="st">Detalle de ${esc(acc?acc.name:'')} · saldo <b style="color:${acc&&acc.saldo>0.005?'var(--bad)':'var(--good)'}">${money(acc?acc.saldo:0)}</b></div>`+
+   `<div class="tbl-wrap" style="max-height:220px;overflow:auto"><table style="min-width:480px"><thead><tr><th>Fecha</th><th>Movimiento</th><th>Cargo</th><th>Abono</th><th>Saldo</th></tr></thead><tbody>`+
+   movs.map(m=>{ bal+=m.monto; return `<tr><td>${ddmm(m.ts)}</td><td>${esc(m.desc)}</td><td class="num">${m.tipo==='cargo'?money(m.monto):''}</td><td class="num" style="color:var(--good)">${m.tipo==='abono'?money(-m.monto):''}</td><td class="num">${money(bal)}</td></tr>`; }).join('')+
+   `</tbody></table></div>`;
+}
+
+/* ===== Abono (vendedora + admin) ===== */
+function openAbono(cliente){
+  document.getElementById('ab_cli').value=cliente||'';
+  document.getElementById('ab_monto').value=''; document.getElementById('ab_nota').value='';
+  document.getElementById('ab_metodo').selectedIndex=0;
+  const accts=creditAccounts().filter(a=>a.saldo>0.005).sort((a,b)=>b.saldo-a.saldo);
+  document.getElementById('abCliList').innerHTML=accts.map(a=>`<option value="${esc(a.name)}">debe ${money(a.saldo)}</option>`).join('');
+  onAbonoCli();
+  document.getElementById('abonoModal').classList.remove('hidden');
+}
+function closeAbono(){ document.getElementById('abonoModal').classList.add('hidden'); }
+function onAbonoCli(){ const cli=document.getElementById('ab_cli').value.trim(); document.getElementById('ab_saldo').textContent=money(cli?saldoOf(cli):0); }
+async function saveAbono(){
+  const cli=document.getElementById('ab_cli').value.trim();
+  const monto=parseFloat(document.getElementById('ab_monto').value)||0;
+  const metodo=document.getElementById('ab_metodo').value;
+  const nota=document.getElementById('ab_nota').value.trim();
+  if(!cli){ toast('Escribe el nombre del cliente','bad'); return; }
+  if(!(monto>0)){ toast('Escribe el monto del abono','bad'); return; }
+  const ab={ ts:Date.now(), cliente:cli, monto, metodo, nota:nota||null, usuario:USER?USER.name:'' };
+  if(SB){ const r=await SB.from('abonos').insert(ab); if(r.error){ console.error(r.error); toast('Error guardando el abono','bad'); return; } }
+  _abonos.push(ab);
+  toast('Abono registrado: '+money(monto)+' · '+cli,'good');
+  closeAbono();
+  if(!document.getElementById('creditosModal').classList.contains('hidden')) renderCreditos();
+  if(USER&&USER.role==='vend'){ renderCart(); updateCliHint(); }
+}
+
 /* ===== Exportar CSV ===== */
 function csvCell(x){ x=String(x); return /[";\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }
 const dec2 = n => Number(n).toFixed(2).replace('.',',');   // Excel es-PE usa coma decimal
 function exportCSV(){
   const rows=filteredAdmin();
   if(!rows.length){ toast("No hay ventas para exportar","bad"); return; }
-  const head=['Fecha','Hora','Vendedora','Cliente','SKU','Producto','Categoría','Tipo','Cantidad','Precio','Venta','Costo unit.','Costo total','Utilidad','Margen %'];
+  const head=['Fecha','Hora','Vendedora','Cliente','Pago','SKU','Producto','Categoría','Tipo','Cantidad','Precio','Venta','Costo unit.','Costo total','Utilidad','Margen %'];
   const lines=[head.join(';')];
   rows.slice().sort((a,b)=>a.ts-b.ts).forEach(v=>{
-    lines.push([ddmm(v.ts),hhmm(v.ts),v.vendedora,v.cliente,v.sku,v.producto,v.cat,tipoOf(v),v.cant,dec2(v.precio),dec2(v.venta),dec2(v.costo),dec2(v.costoT),dec2(v.util),(v.margen*100).toFixed(1).replace('.',',')].map(csvCell).join(';'));
+    lines.push([ddmm(v.ts),hhmm(v.ts),v.vendedora,v.cliente,(v.pago==='credito'?'Fiado':'Contado'),v.sku,v.producto,v.cat,tipoOf(v),v.cant,dec2(v.precio),dec2(v.venta),dec2(v.costo),dec2(v.costoT),dec2(v.util),(v.margen*100).toFixed(1).replace('.',',')].map(csvCell).join(';'));
   });
   const label = adminWeek==='all'?'histórico':weekLabel(adminWeek).replace(/[^\dA-Za-zñ]+/g,'-');
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
