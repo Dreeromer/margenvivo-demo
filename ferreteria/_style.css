@@ -346,10 +346,11 @@ td .sub2{font-size:11px;color:var(--muted);margin-top:1px}
 .stage.flat{transform:none}
 .stage.flat::before{opacity:0}
 /* el piso ancla las bases: sin él la perspectiva se lee como si las barras flotaran */
-.stage::before{content:'';position:absolute;left:-4%;width:108%;height:230px;bottom:0;
+.stage::before{content:'';position:absolute;left:50%;width:530px;margin-left:-265px;height:170px;bottom:0;
   transform:rotateX(90deg);transform-origin:center bottom;pointer-events:none;
-  background:linear-gradient(to bottom, color-mix(in srgb,var(--br) 11%, transparent), transparent 72%);
+  background:linear-gradient(to bottom, color-mix(in srgb,var(--br) 12%, transparent), transparent 70%);
   border-top:1px solid var(--hair2);transition:opacity .4s}
+@media(max-width:600px){.stage::before{width:100%;margin-left:-50%}}
 .col3{position:relative;transform-style:preserve-3d;width:38px;cursor:pointer}
 .col3 .face{position:absolute;bottom:0;left:0;width:38px;background:var(--br);
   transition:filter .16s, height .5s cubic-bezier(.2,.8,.2,1);transform:translateZ(19px);
