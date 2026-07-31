@@ -117,7 +117,13 @@
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 15px}
   .kpi .kl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
   .kpi .kv{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:5px;line-height:1}
-  .kpi .kv.warn{color:var(--warn)}.kpi .kv.good{color:var(--good)}
+  .kpi .kv.warn{color:var(--warn)}.kpi .kv.good{color:var(--good)}.kpi .kv.bad{color:var(--bad)}
+  .qmat{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .qbox{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:var(--bg)}
+  .qbox .qt{font-size:12px;font-weight:800;letter-spacing:.02em}
+  .qbox .qn{font-size:20px;font-weight:800;margin:2px 0 3px}
+  .qbox .qd{font-size:11.5px;color:var(--muted);line-height:1.35}
+  .dim{color:var(--muted)}
   .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
   @media(max-width:760px){.panels{grid-template-columns:1fr}}
   .bars{display:flex;flex-direction:column;gap:11px;margin-top:14px}
@@ -315,6 +321,19 @@
       </div>
     </div>
     <div class="cfg-sec">
+      <div class="st">Reposición de stock <span class="tag">cuánto pedir</span></div>
+      <p class="sub" style="font-size:12px;margin:2px 0 8px">Con esto el sistema calcula solo el stock mínimo y la orden de compra de cada producto.</p>
+      <div class="cfg-grid">
+        <div class="field"><label class="label">Semanas a mirar</label><input id="rp_ventana" type="number" min="2" max="52" step="1"></div>
+        <div class="field"><label class="label">Demora proveedor (sem)</label><input id="rp_lead" type="number" min="0" max="12" step="0.5"></div>
+        <div class="field"><label class="label">Colchón (sem)</label><input id="rp_colchon" type="number" min="0" max="12" step="0.5"></div>
+      </div>
+      <div class="cfg-grid" style="margin-top:10px">
+        <div class="field"><label class="label">Comprar para (sem)</label><input id="rp_cobertura" type="number" min="1" max="52" step="1"></div>
+        <div class="field"><label class="label">Dormido tras (días)</label><input id="rp_dormido" type="number" min="15" max="365" step="5"></div>
+      </div>
+    </div>
+    <div class="cfg-sec">
       <div class="st">Datos de la empresa <span class="tag">solo admin</span></div>
       <p class="sub" style="font-size:12px;margin:2px 0 8px">Es tu negocio (emisor). Sale como encabezado de la cotización formal.</p>
       <div class="grid2">
@@ -382,9 +401,16 @@
 
 <!-- INVENTARIO MODAL (admin) -->
 <div id="inventoryModal" class="overlay hidden">
-  <div class="modal" style="max-width:720px">
-    <h2>Inventario</h2>
-    <p class="sub" style="margin:4px 0 0;font-size:13px">Controla el stock de cada producto. Cada venta lo descuenta solo. Los servicios no tienen stock.</p>
+  <div class="modal" style="max-width:900px">
+    <div style="display:flex;align-items:center;gap:10px"><h2>Inventario</h2><button class="btn sm ghost" style="margin-left:auto" onclick="closeInventory()">Cerrar ✕</button></div>
+    <p class="sub" style="margin:4px 0 0;font-size:13px">Cada venta descuenta el stock sola. Con el histórico de ventas el sistema calcula cuánto sale por semana y cuánto hay que pedir.</p>
+    <div class="seg" id="invTabs" style="margin-top:14px">
+      <button class="seg-b active" data-t="exist" onclick="setInvTab('exist')">Existencias</button>
+      <button class="seg-b" data-t="repo" onclick="setInvTab('repo')">Reposición</button>
+      <button class="seg-b" data-t="rot" onclick="setInvTab('rot')">Rotación</button>
+    </div>
+
+<div id="invTabExist">
     <div class="cfg-sec">
       <div class="st">Registrar recepción <span class="tag">llegó mercadería</span></div>
       <div class="grid2">
@@ -407,6 +433,35 @@
     </div>
     <div class="tbl-wrap" style="max-height:300px;overflow:auto"><table id="invTable"><thead><tr><th>Producto</th><th>Stock</th><th>Mín</th><th>Estado</th><th>Seguir</th></tr></thead><tbody></tbody></table></div>
     <div class="cfg-sec" id="recepList"></div>
+</div>
+
+<div id="invTabRepo" class="hidden">
+    <div id="repoBanner"></div>
+    <div class="kpis" id="repoKpis" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:14px"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin:16px 0 8px;flex-wrap:wrap">
+      <input id="repoSearch" placeholder="Buscar producto…" oninput="renderRepo()" style="flex:1;min-width:150px">
+      <div class="seg" id="repoFilters">
+        <button class="seg-b active" data-f="pedir" onclick="setRepoFilter('pedir')">Hay que pedir</button>
+        <button class="seg-b" data-f="mueve" onclick="setRepoFilter('mueve')">Lo que se mueve</button>
+        <button class="seg-b" data-f="all" onclick="setRepoFilter('all')">Todos</button>
+      </div>
+    </div>
+    <div class="tbl-wrap" style="max-height:320px;overflow:auto"><table id="repoTable"><thead><tr><th>Producto</th><th>Sale/sem</th><th>Ritmo</th><th>Stock</th><th>Alcanza</th><th>Mín sug.</th><th>Pedir</th></tr></thead><tbody></tbody></table></div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn sm primary" onclick="aplicarMinimos()">⚡ Calcular y guardar los mínimos</button>
+      <button class="btn sm" onclick="exportOrdenCompra()">⬇ Orden de compra CSV</button>
+    </div>
+</div>
+
+<div id="invTabRot" class="hidden">
+    <div class="kpis" id="rotKpis" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:14px"></div>
+    <div class="cfg-sec"><div class="st">Dónde está la plata <span class="tag">clasificación ABC</span></div><div class="bars" id="rotAbc"></div>
+      <p class="sub" style="font-size:12px;margin:8px 0 0">Los productos <b>A</b> hacen el 80% de tu venta: si uno de esos se agota, se nota. Los <b>C</b> son la cola larga.</p></div>
+    <div class="cfg-sec"><div class="st">Lo que más se mueve <span class="tag">unidades por semana</span></div><div class="bars" id="rotTop"></div></div>
+    <div class="cfg-sec"><div class="st">Margen × rotación <span class="tag">qué comprar y qué no</span></div><div class="qmat" id="rotMatrix"></div></div>
+    <div class="cfg-sec"><div class="st">Capital dormido <span class="tag">stock que no rota</span></div><div id="rotDormido"></div></div>
+</div>
+
     <div class="m-actions"><button class="btn primary" onclick="closeInventory()">Listo</button></div>
   </div>
 </div>
@@ -521,13 +576,17 @@ async function saveCatalog(){
 
 /* ===== Config de márgenes (editable por el admin · persistida) ===== */
 const CFG_K='mv_cfg_v1';
+// repo = reglas de reposición: cuántas semanas mirar, cuánto demora el proveedor,
+// cuánto colchón dejar, para cuántas semanas comprar y a los cuántos días se considera stock dormido.
+const DEFAULT_REPO = { ventana:8, lead:1, colchon:0.5, cobertura:4, dormido:60 };
 const DEFAULT_CFG = {
   floors:{ plancha:{floor:0.12, alert:0.10}, canto:{floor:0.40, alert:0.30} },
-  meta:{ plancha:0.16, canto:0.55 }
+  meta:{ plancha:0.16, canto:0.55 },
+  repo:Object.assign({}, DEFAULT_REPO)
 };
 function loadCfg(){
   const d=JSON.parse(JSON.stringify(DEFAULT_CFG));
-  try{ const s=JSON.parse(localStorage.getItem(CFG_K)); if(s){ if(s.floors)d.floors=s.floors; if(s.meta)d.meta=s.meta; } }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(CFG_K)); if(s){ if(s.floors)d.floors=s.floors; if(s.meta)d.meta=s.meta; if(s.repo)d.repo=s.repo; } }catch(e){}
   return d;
 }
 let CFG = loadCfg();
@@ -998,12 +1057,14 @@ function renderAdmin(){
   const mg=venta?util/venta*100:0, low=all.filter(belowFloor).length;
   const lowStock = PRODUCTS.filter(p=>{const s=stockStatus(p);return s==='low'||s==='out';}).length;
   const porCobrar = creditAccounts().reduce((s,a)=>s+(a.saldo>0?a.saldo:0),0);
+  const porPedir = repoRows().filter(r=>r.pedir>0).length;
   document.getElementById("aSub").textContent = (adminWeek==='all'?'Histórico completo':'Semana '+weekLabel(adminWeek))+` · ${all.length} ventas · ${uniqueSellers(all).length} vendedoras`;
   document.getElementById("aKpis").innerHTML=[
     {kl:"Venta",kv:kf(venta)},{kl:"Utilidad",kv:kf(util),c:"good"},
     {kl:"Margen",kv:mg.toFixed(1)+"%"},{kl:"# Ventas",kv:all.length},
     {kl:"Bajo piso",kv:low,c:low?"warn":""},
     {kl:"Stock bajo",kv:lowStock,c:lowStock?"warn":"",click:"openInventory('low')"},
+    {kl:"Por pedir",kv:porPedir,c:porPedir?"warn":"",click:"openInventory('repo')"},
     {kl:"Por cobrar",kv:kf(porCobrar),c:porCobrar>0?"warn":"",click:"openCreditos()"},
   ].map(k=>`<div class="kpi"${k.click?` style="cursor:pointer" onclick="${k.click}" title="Ver detalle"`:''}><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join("");
 
@@ -1154,10 +1215,117 @@ async function resetCatalog(){
   await saveCatalog(); rebuildIndex(); buildDatalist(); fillCatList(); renderCatalog(); toast('Catálogo restaurado (el stock se mantuvo)','good');
 }
 
+/* ===== Motor de rotación y reposición ==============================
+   Todo sale del histórico de ventas: cuánto se vende de cada producto por
+   semana, para cuántas semanas alcanza el stock y cuánto hay que pedir.
+   No necesita que nadie cargue nada: con las ventas ya se sabe. */
+const SEM_MS = 7*86400000;
+const repoCfg = () => Object.assign({}, DEFAULT_REPO, CFG.repo||{});
+
+// Ventas agrupadas por producto dentro de la ventana. 'last' mira TODO el
+// histórico (sirve para detectar lo que dejó de venderse).
+function demandBySku(now, ventana){
+  const R=repoCfg(); ventana=ventana||R.ventana; now=now||Date.now();
+  const desde = weekStart(now) - (ventana-1)*SEM_MS;
+  const m={};
+  Store.all().forEach(v=>{
+    if(tipoOf(v)==='servicio') return;                 // los servicios no tienen stock
+    const k = v.sku || ('~'+v.producto);
+    const r = m[k] || (m[k]={cant:0,venta:0,util:0,semanas:new Set(),last:0});
+    if(v.ts>r.last) r.last=v.ts;
+    if(v.ts>=desde){ r.cant+=Number(v.cant)||0; r.venta+=Number(v.venta)||0; r.util+=Number(v.util)||0; r.semanas.add(weekStart(v.ts)); }
+  });
+  return m;
+}
+
+// Semanas del periodo en las que el negocio tuvo movimiento. El promedio se divide
+// entre estas y no entre la ventana completa: si la tienda estuvo cerrada (o los datos
+// no llegan hasta hoy) no hay por qué diluir la demanda a la mitad.
+function semanasBase(now, ventana){
+  const R=repoCfg(); ventana=ventana||R.ventana; now=now||Date.now();
+  const desde = weekStart(now)-(ventana-1)*SEM_MS;
+  const s=new Set();
+  Store.all().forEach(v=>{ if(v.ts>=desde) s.add(weekStart(v.ts)); });
+  return Math.max(1, Math.min(ventana, s.size));
+}
+
+// Una ficha por producto del catálogo, con todo lo necesario para decidir compras.
+function repoRows(now){
+  const R=repoCfg(); now=now||Date.now();
+  const dem=demandBySku(now,R.ventana);
+  const base=semanasBase(now,R.ventana);
+  return PRODUCTS.filter(p=>p.tipo!=='servicio').map(p=>{
+    const d = dem[p.sku] || {cant:0,venta:0,util:0,semanas:new Set(),last:0};
+    const demSem  = d.cant/base;                                       // promedio sobre las semanas con movimiento
+    const semActivas = d.semanas.size;
+    const regular = semActivas/base;                                   // en cuántas de esas semanas se vendió
+    const minSug  = demSem>0 ? Math.max(1, Math.ceil(demSem*(R.lead+R.colchon))) : 0;
+    const objetivo= demSem>0 ? Math.ceil(demSem*R.cobertura) : 0;
+    const stock   = Number(p.stock)||0;
+    const cobertura = demSem>0 ? stock/demSem : (stock>0?Infinity:0);  // ¿para cuántas semanas alcanza?
+    const pedir   = (p.track && demSem>0) ? Math.max(0, objetivo-stock) : 0;
+    return { sku:p.sku, nombre:p.nombre, cat:p.cat||'', tipo:p.tipo, costo:Number(p.costo)||0,
+      track:!!p.track, stock, stock_min:Number(p.stock_min)||0,
+      cant:d.cant, venta:d.venta, util:d.util, margen: d.venta ? d.util/d.venta : 0,
+      demSem, semActivas, regular, base, minSug, objetivo, cobertura, pedir,
+      dias: d.last ? Math.floor((now-d.last)/86400000) : null };
+  });
+}
+
+// Qué tan constante es la salida (sirve para saber de cuáles fiarse al comprar)
+function ritmoOf(r){ return r.demSem<=0 ? 'nulo' : (r.regular>=0.75?'constante':(r.regular>=0.35?'irregular':'esporadico')); }
+const RITMO_LBL = {constante:'constante', irregular:'irregular', esporadico:'esporádico', nulo:'sin salida'};
+
+// Urgencia: 'urgente' se acaba antes de que llegue el pedido; 'pronto' aguanta el
+// pedido pero no el colchón; 'ok' está cubierto; 'sin' no aplica.
+function repoNivel(r){
+  const R=repoCfg();
+  if(!r.track || r.demSem<=0) return 'sin';
+  if(r.cobertura<=R.lead) return 'urgente';
+  if(r.cobertura<=R.lead+R.colchon) return 'pronto';
+  return 'ok';
+}
+
+// Clasificación ABC: A = el 80% de la venta, B = hasta 95%, C = la cola larga.
+function abcOf(rows){
+  const con=rows.filter(r=>r.venta>0).sort((a,b)=>b.venta-a.venta);
+  const total=con.reduce((s,r)=>s+r.venta,0);
+  let acc=0;
+  // se clasifica por el acumulado ANTES del producto: así el que cruza el 80% entra en A
+  con.forEach(r=>{ const prev = total?acc/total:0; acc+=r.venta; r.acum = total?acc/total:0;
+    r.abc = prev<0.80?'A':(prev<0.95?'B':'C'); });
+  rows.forEach(r=>{ if(!r.abc) r.abc=''; });
+  return {rows:con, total};
+}
+
+// Stock parado: hay existencias pero hace mucho que no se vende. Es plata dormida.
+function dormidosOf(rows){
+  const R=repoCfg();
+  return rows.filter(r=>r.stock>0 && (r.dias===null || r.dias>R.dormido))
+             .map(r=>Object.assign({}, r, {capital:r.stock*r.costo}))
+             .sort((a,b)=>b.capital-a.capital);
+}
+
+const median = arr => { if(!arr.length) return 0; const a=arr.slice().sort((x,y)=>x-y), m=a.length>>1; return a.length%2?a[m]:(a[m-1]+a[m])/2; };
+
+// Matriz margen × rotación: el cruce que decide qué comprar y qué dejar de comprar.
+function matrizOf(rows){
+  const con=rows.filter(r=>r.venta>0 && r.demSem>0);
+  const mr=median(con.map(r=>r.demSem)), mm=median(con.map(r=>r.margen));
+  const q={estrella:[],volumen:[],joya:[],lastre:[]};
+  con.forEach(r=>{
+    const rota=r.demSem>=mr, gana=r.margen>=mm;
+    q[rota&&gana?'estrella':(rota?'volumen':(gana?'joya':'lastre'))].push(r);
+  });
+  Object.values(q).forEach(a=>a.sort((x,y)=>y.venta-x.venta));
+  return {q, mr, mm};
+}
+
 /* ===== Inventario (admin) ===== */
 let invFilter='track';
 function openInventory(filter){
-  invFilter = filter||'track';
+  setInvTab(filter==='repo'||filter==='rot' ? filter : 'exist');
+  invFilter = (filter==='repo'||filter==='rot') ? 'track' : (filter||'track');
   document.querySelectorAll('#invFilters .seg-b').forEach(b=>b.classList.toggle('active',b.dataset.f===invFilter));
   document.getElementById('invSearch').value='';
   document.getElementById('rc_prod').value=''; document.getElementById('rc_cant').value=''; document.getElementById('rc_nota').value='';
@@ -1217,6 +1385,146 @@ async function loadRecepciones(){
   box.innerHTML='<div class="st">Últimas entradas</div>'+list.map(r=>
     `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line)"><span>${esc(r.producto||r.sku)} ${r.nota?`<span style="color:var(--muted)">· ${esc(r.nota)}</span>`:''}</span><span style="white-space:nowrap"><b style="color:var(--good)">+${r.cant}</b> <span style="color:var(--muted)">${ddmm(Number(r.ts))}</span></span></div>`
   ).join('');
+}
+
+/* ===== Reposición y rotación (pestañas del Inventario) ===== */
+let invTab='exist', repoFilter='pedir';
+function setInvTab(t){
+  invTab = t;
+  document.querySelectorAll('#invTabs .seg-b').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
+  [['exist','invTabExist'],['repo','invTabRepo'],['rot','invTabRot']].forEach(([k,id])=>document.getElementById(id).classList.toggle('hidden',k!==t));
+  if(t==='repo') renderRepo(); else if(t==='rot') renderRotacion();
+}
+function setRepoFilter(f){ repoFilter=f; document.querySelectorAll('#repoFilters .seg-b').forEach(b=>b.classList.toggle('active',b.dataset.f===f)); renderRepo(); }
+const un = n => (Math.abs(n)>=10 ? Math.round(n).toLocaleString('es-PE') : (Math.round(n*10)/10).toString().replace('.',','));
+
+function renderRepo(){
+  const R=repoCfg(), rows=repoRows();
+  const mueven  = rows.filter(r=>r.demSem>0);
+  const pedir   = rows.filter(r=>r.pedir>0);
+  const compra  = pedir.reduce((s,r)=>s+r.pedir*r.costo,0);
+  const urgentes= rows.filter(r=>repoNivel(r)==='urgente').length;
+  const siguiendo = rows.filter(r=>r.track).length;
+
+  const base = semanasBase();
+  document.getElementById('repoBanner').innerHTML =
+    (siguiendo ? '' : `<div class="insight" style="margin:14px 0 0"><span class="i">!</span><div>Todavía no cargas existencias, pero <b>el sistema ya sabe cuánto sale cada producto</b>: ${mueven.length} con movimiento en las últimas ${R.ventana} semanas. La columna <b>«Mín sug.»</b> es el stock mínimo que deberías tener para no quedarte sin vender — se calcula solo. Carga el stock en <b>Existencias</b> y se completa lo demás.</div></div>`)
+    + `<p class="sub" style="font-size:12px;margin:10px 0 0">Promedio medido sobre <b>${base} ${base===1?'semana':'semanas'}</b> con movimiento${base<R.ventana?` (de las últimas ${R.ventana}; en las otras no hay ventas registradas)`:''}. Repone para <b>${R.cobertura} semanas</b> contando <b>${un(R.lead)}</b> de demora del proveedor. Se cambia en ⚙ Ajustes.</p>`;
+
+  document.getElementById('repoKpis').innerHTML=[
+    {kl:'Hay que pedir', kv:pedir.length, c:pedir.length?'warn':''},
+    {kl:'Compra sugerida', kv:kf(compra)},
+    {kl:'Se agotan ya', kv:urgentes, c:urgentes?'bad':''},
+    {kl:'Con movimiento', kv:mueven.length},
+  ].map(k=>`<div class="kpi"><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join('');
+
+  let list = repoFilter==='pedir' ? pedir : (repoFilter==='mueve' ? mueven : rows);
+  const q=document.getElementById('repoSearch').value.trim().toUpperCase();
+  if(q) list=list.filter(r=>r.nombre.toUpperCase().includes(q)||r.cat.toUpperCase().includes(q));
+  list = list.slice().sort(repoFilter==='pedir' ? (a,b)=>(b.pedir*b.costo)-(a.pedir*a.costo) : (a,b)=>b.demSem-a.demSem);
+
+  document.querySelector('#repoTable tbody').innerHTML = list.slice(0,300).map(r=>{
+    const nv=repoNivel(r), rt=ritmoOf(r);
+    const alcanza = !r.track ? '<span class="dim">carga stock</span>'
+      : (r.demSem<=0 ? '<span class="dim">sin salida</span>'
+      : `<span class="pill ${nv==='urgente'?'bad':(nv==='pronto'?'warn':'good')}">${r.cobertura===Infinity?'∞':un(r.cobertura)+' sem'}</span>`);
+    const rtCls = rt==='constante'?'good':(rt==='irregular'?'warn':'');
+    return `<tr><td>${esc(r.nombre)}<div style="font-size:11px;color:var(--muted)">${esc(r.cat)}</div></td>`+
+      `<td class="num">${r.demSem>0?un(r.demSem):'<span class="dim">—</span>'}</td>`+
+      `<td>${r.demSem>0?`<span class="pill ${rtCls}" style="font-size:11px">${RITMO_LBL[rt]}</span>`:''}</td>`+
+      `<td class="num">${r.track?un(r.stock):'<span class="dim">—</span>'}</td>`+
+      `<td>${alcanza}</td>`+
+      `<td class="num">${r.minSug||'<span class="dim">—</span>'}</td>`+
+      `<td class="num">${r.pedir?`<b>${un(r.pedir)}</b><div style="font-size:11px;color:var(--muted)">${money0(r.pedir*r.costo)}</div>`:'<span class="dim">—</span>'}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">${repoFilter==='pedir'?'Nada por pedir con el stock cargado hoy.':'Sin resultados.'}</td></tr>`;
+}
+
+// Escribe el stock mínimo calculado en todo el catálogo, de una sola vez.
+// NO enciende el seguimiento: eso lo decide el dueño producto por producto.
+async function aplicarMinimos(){
+  const cambios = repoRows().filter(r=>r.minSug>0 && r.minSug!==r.stock_min);
+  if(!cambios.length){ toast('Los mínimos ya están al día','good'); return; }
+  if(SB){
+    const res = await SB.from('catalogo').upsert(cambios.map(r=>({sku:r.sku, stock_min:r.minSug})));
+    if(res.error){ console.error(res.error); toast('Error guardando los mínimos','bad'); return; }
+  }
+  cambios.forEach(r=>{ const p=BY_SKU[r.sku]; if(p) p.stock_min=r.minSug; });
+  renderRepo(); renderInventory();
+  toast(`${cambios.length} productos ya tienen su mínimo calculado`,'good');
+}
+
+function exportOrdenCompra(){
+  const rows=repoRows().filter(r=>r.pedir>0).sort((a,b)=>(b.pedir*b.costo)-(a.pedir*a.costo));
+  if(!rows.length){ toast('No hay nada por pedir','bad'); return; }
+  const head=['Producto','Categoría','Sale por semana','Stock actual','Alcanza (sem)','Pedir','Costo unit.','Costo total'];
+  const lines=[head.join(';')];
+  rows.forEach(r=>lines.push([r.nombre,r.cat,dec2(r.demSem),r.stock,(r.cobertura===Infinity?'':dec2(r.cobertura)),r.pedir,dec2(r.costo),dec2(r.pedir*r.costo)].map(csvCell).join(';')));
+  lines.push(['TOTAL','','','','','','',dec2(rows.reduce((s,r)=>s+r.pedir*r.costo,0))].join(';'));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='MargenVivo_orden_de_compra.csv'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast('Orden de compra exportada ✓','good');
+}
+
+function renderRotacion(){
+  const R=repoCfg(), rows=repoRows();
+  const {rows:abc, total} = abcOf(rows);
+  const mueven = rows.filter(r=>r.demSem>0);
+  const durm = dormidosOf(rows);
+  const capital = durm.reduce((s,r)=>s+r.capital,0);
+  const nA = abc.filter(r=>r.abc==='A').length;
+
+  document.getElementById('rotKpis').innerHTML=[
+    {kl:'Productos que rotan', kv:mueven.length},
+    {kl:`Venta ${R.ventana} sem`, kv:kf(total)},
+    {kl:'Productos A', kv:nA, c:'good'},
+    {kl:'Capital dormido', kv:kf(capital), c:capital>0?'warn':''},
+  ].map(k=>`<div class="kpi"><div class="kl">${k.kl}</div><div class="kv ${k.c||''} num">${k.kv}</div></div>`).join('');
+
+  // ABC
+  const g={A:{n:0,v:0},B:{n:0,v:0},C:{n:0,v:0}};
+  abc.forEach(r=>{ g[r.abc].n++; g[r.abc].v+=r.venta; });
+  const LBL={A:'A · lo vital',B:'B · lo intermedio',C:'C · la cola larga'}, CLS={A:'good',B:'warn',C:'bad'};
+  document.getElementById('rotAbc').innerHTML = ['A','B','C'].map(k=>{
+    const share = total? g[k].v/total*100 : 0;
+    return `<div class="bar-row"><span class="bar-l">${LBL[k]}</span>`+
+      `<span class="bar-t"><span class="bar-f ${CLS[k]}" style="width:${Math.max(6,share)}%"></span></span>`+
+      `<span class="bar-v num" title="${g[k].n} productos">${g[k].n} prod · ${share.toFixed(0)}%</span></div>`;
+  }).join('') || emptyMsg();
+
+  // lo que más se mueve (unidades por semana)
+  const top = mueven.slice().sort((a,b)=>b.demSem-a.demSem).slice(0,10);
+  const mx = Math.max(1,...top.map(r=>r.demSem));
+  document.getElementById('rotTop').innerHTML = top.map(r=>
+    `<div class="bar-row"><span class="bar-l" title="${esc(r.nombre)}">${esc(r.nombre)}</span>`+
+    `<span class="bar-t"><span class="bar-f" style="width:${Math.max(6,r.demSem/mx*100)}%"></span></span>`+
+    `<span class="bar-v num">${un(r.demSem)} u/sem</span></div>`
+  ).join('') || emptyMsg();
+
+  // matriz margen × rotación
+  const {q,mr,mm} = matrizOf(rows);
+  const CUAD=[
+    {k:'estrella',t:'⭐ Estrellas',d:'Rotan y dejan margen. Nunca deben faltar.',c:'var(--good)'},
+    {k:'volumen', t:'🔁 Volumen',  d:'Rotan pero dejan poco. Cuidado con el precio: aquí se escapa la utilidad.',c:'var(--warn)'},
+    {k:'joya',    t:'💎 Joyas dormidas',d:'Dejan buen margen pero casi no se venden. Vale la pena empujarlos.',c:'var(--primary)'},
+    {k:'lastre',  t:'🪨 Lastre',   d:'Ni rotan ni dejan. Candidatos a dejar de comprar.',c:'var(--bad)'},
+  ];
+  document.getElementById('rotMatrix').innerHTML = CUAD.map(c=>{
+    const arr=q[c.k], ej=arr.slice(0,3).map(r=>esc(r.nombre)).join(' · ');
+    return `<div class="qbox"><div class="qt" style="color:${c.c}">${c.t}</div><div class="qn num">${arr.length}</div>`+
+      `<div class="qd">${c.d}${ej?`<br><span style="color:var(--ink);opacity:.75">${ej}</span>`:''}</div></div>`;
+  }).join('') + `<div style="grid-column:1/-1;font-size:11.5px;color:var(--muted)">Corte: rotación ${un(mr)} u/sem · margen ${(mm*100).toFixed(0)}% (la mediana de tus productos).</div>`;
+
+  // capital dormido
+  const box=document.getElementById('rotDormido');
+  box.innerHTML = durm.length
+    ? `<p class="sub" style="font-size:12.5px;margin:0 0 8px">Tienes <b>${money0(capital)}</b> en ${durm.length} productos con stock que no se venden hace más de ${R.dormido} días.</p>`+
+      durm.slice(0,10).map(r=>
+        `<div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line)">`+
+        `<span>${esc(r.nombre)} <span style="color:var(--muted)">· ${un(r.stock)} u · ${r.dias===null?'nunca se vendió':'hace '+r.dias+' días'}</span></span>`+
+        `<b style="white-space:nowrap;color:var(--warn)">${money0(r.capital)}</b></div>`).join('')
+    : `<div style="color:var(--muted);font-size:12.5px">Nada dormido: todo lo que tiene stock se está vendiendo. 👌</div>`;
 }
 
 /* ===== Créditos / Fiado (admin) ===== */
@@ -1317,6 +1625,9 @@ function openSettings(){
   g('ca_floor').value=Math.round(CFG.floors.canto.floor*100);
   g('ca_alert').value=Math.round(CFG.floors.canto.alert*100);
   g('ca_meta').value=Math.round(CFG.meta.canto*100);
+  const R=repoCfg();
+  g('rp_ventana').value=R.ventana; g('rp_lead').value=R.lead; g('rp_colchon').value=R.colchon;
+  g('rp_cobertura').value=R.cobertura; g('rp_dormido').value=R.dormido;
   const c=getConfig();
   g('set_empresa').value=c.empresa; g('set_ruc').value=c.ruc;
   g('set_banco').value=c.banco; g('set_cuenta').value=c.cuenta; g('set_cci').value=c.cci;
@@ -1330,6 +1641,10 @@ function saveSettings(){
   CFG.floors.plancha={floor:pct('pl_floor'),alert:pct('pl_alert')};
   CFG.floors.canto={floor:pct('ca_floor'),alert:pct('ca_alert')};
   CFG.meta.plancha=pct('pl_meta'); CFG.meta.canto=pct('ca_meta');
+  const numv=(id,min,max,def)=>{ let v=parseFloat(document.getElementById(id).value); if(isNaN(v))v=def; return Math.min(max,Math.max(min,v)); };
+  CFG.repo={ ventana:Math.round(numv('rp_ventana',2,52,DEFAULT_REPO.ventana)), lead:numv('rp_lead',0,12,DEFAULT_REPO.lead),
+    colchon:numv('rp_colchon',0,12,DEFAULT_REPO.colchon), cobertura:Math.round(numv('rp_cobertura',1,52,DEFAULT_REPO.cobertura)),
+    dormido:Math.round(numv('rp_dormido',15,365,DEFAULT_REPO.dormido)) };
   SB.from('margenes').upsert({id:1,data:CFG}).then(r=>{ if(r.error)console.error(r.error); });
   const g=id=>document.getElementById(id);
   saveConfig(Object.assign(getConfig(), {
