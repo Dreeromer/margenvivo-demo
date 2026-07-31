@@ -147,7 +147,7 @@ tbody tr:hover{background:var(--raised)}
 td .sub2{font-size:11px;color:var(--muted);margin-top:1px}
 
 /* ── KPIs ── */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:11px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px}
 .kpi{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-lg);padding:13px 15px;
   position:relative;overflow:hidden;box-shadow:var(--shadow)}
 .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--hair2)}
@@ -268,8 +268,6 @@ td .sub2{font-size:11px;color:var(--muted);margin-top:1px}
   background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.28) 0 1px,transparent 1px 7px)}
 .total .tl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;opacity:.62;margin-top:5px}
 .total .tv{font-size:38px;font-weight:600;letter-spacing:-.04em;line-height:1.05;margin-top:2px}
-:root[data-theme="dark"] .total,
-@media(prefers-color-scheme:dark){.total{background:var(--raised);color:var(--ink);border:1px solid var(--hair2)}}
 .empty-tk{padding:30px 18px;text-align:center;color:var(--muted);font-size:13px}
 
 /* formas de pago */
@@ -341,11 +339,17 @@ td .sub2{font-size:11px;color:var(--muted);margin-top:1px}
 /* =====================================================================
    PANEL — gráficas
    ===================================================================== */
-.scene{perspective:1100px;perspective-origin:50% 22%;padding:22px 8px 0}
-.stage{transform-style:preserve-3d;transform:rotateX(19deg) rotateY(-22deg);
-  display:flex;align-items:flex-end;gap:24px;height:180px;justify-content:center;
+.scene{perspective:1250px;perspective-origin:50% 28%;padding:26px 8px 0}
+.stage{position:relative;transform-style:preserve-3d;transform:rotateX(20deg) rotateY(-11deg);
+  display:flex;align-items:flex-end;gap:30px;height:172px;justify-content:center;
   transition:transform .5s cubic-bezier(.2,.8,.2,1)}
 .stage.flat{transform:none}
+.stage.flat::before{opacity:0}
+/* el piso ancla las bases: sin él la perspectiva se lee como si las barras flotaran */
+.stage::before{content:'';position:absolute;left:-4%;width:108%;height:230px;bottom:0;
+  transform:rotateX(90deg);transform-origin:center bottom;pointer-events:none;
+  background:linear-gradient(to bottom, color-mix(in srgb,var(--br) 11%, transparent), transparent 72%);
+  border-top:1px solid var(--hair2);transition:opacity .4s}
 .col3{position:relative;transform-style:preserve-3d;width:38px;cursor:pointer}
 .col3 .face{position:absolute;bottom:0;left:0;width:38px;background:var(--br);
   transition:filter .16s, height .5s cubic-bezier(.2,.8,.2,1);transform:translateZ(19px);
@@ -362,7 +366,7 @@ td .sub2{font-size:11px;color:var(--muted);margin-top:1px}
   font-weight:700;color:var(--muted);white-space:nowrap}
 .col3 .val{position:absolute;left:50%;transform:translateX(-50%) translateZ(20px);font-size:10.5px;
   font-weight:700;color:var(--ink2);white-space:nowrap}
-.axis{position:relative;margin:34px 0 0;height:15px;
+.axis{position:relative;margin:26px 0 0;height:14px;
   background-image:repeating-linear-gradient(90deg,var(--hair2) 0 1px,transparent 1px 9px);opacity:.6}
 .chart-legend{display:flex;gap:15px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:13px;
   justify-content:center}
