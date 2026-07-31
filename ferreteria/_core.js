@@ -69,8 +69,12 @@ function buildHistorial(){
     // una ferretería de mostrador despacha entre 30 y 60 tickets al día; sábado es el fuerte
     let tickets = Math.round((dow===5 ? 52 : 36) * (finMes?1.3:1) * (0.78+rnd()*0.42));
     for(let t=0; t<tickets; t++){
-      const cliIdx = Math.floor(rnd()*CLIENTES_DEMO.length);
-      const [cliNom,, tipoCli] = CLIENTES_DEMO[cliIdx];
+      // 2 de cada 5 tickets son de un cliente registrado; el resto, público de paso
+      const registrado = rnd() < 0.42;
+      const cli = registrado ? CLIENTES[Math.floor(rnd()*CLIENTES.length)] : null;
+      const cliNom = cli ? cli.nombre : '';
+      const cliDoc = cli ? cli.doc : '';
+      const tipoCli = cli ? cli.tipo : 'publico';
       const hora = 8 + Math.floor(rnd()*11);          // 8am - 7pm
       const ts = ts0 + hora*3600000 + Math.floor(rnd()*60)*60000;
       if(ts > ahora) continue;                        // hoy: no inventar ventas que aún no ocurrieron
@@ -98,7 +102,7 @@ function buildHistorial(){
         const base = tipoCli==='mayorista' ? p.lista : p.publico;
         const precio = Math.round(base*(1-desc/100)*100)/100;
         ventas.push(mkVenta({ id:'h'+(id++), ticket, ts, prod:p, cant, precio, cliente:cliNom,
-          tipoCliente:tipoCli, pago, desc, cajero:'Milagros' }));
+          clienteDoc:cliDoc, clienteId:cli?cli.id:'', tipoCliente:tipoCli, pago, desc, cajero:'Milagros' }));
       }
     }
   }
@@ -107,18 +111,59 @@ function buildHistorial(){
 
 // Arma una línea de venta con su costo congelado (snapshot): si mañana cambia el
 // costo del catálogo, el histórico no se altera.
-function mkVenta({id, ticket, ts, prod, cant, precio, cliente, tipoCliente, pago, desc, cajero}){
+function mkVenta({id, ticket, ts, prod, cant, precio, cliente, clienteId, clienteDoc, tipoCliente, pago, desc, cajero}){
   const venta = Math.round(cant*precio*100)/100;
   const costo = prod.tipo==='servicio' ? 0 : prod.costo;
   const costoT = Math.round(cant*costo*100)/100;
   const util = Math.round((venta-costoT)*100)/100;
   return { id, ticket, ts, sku:prod.sku, producto:prod.nombre, cat:prod.cat, unidad:prod.unidad,
     tipo:prod.tipo, cant, precio, venta, costo, costoT, util, margen: venta?util/venta:0,
-    cliente, tipoCliente, pago, desc:desc||0, cajero };
+    cliente: cliente||'', clienteId: clienteId||'', clienteDoc: clienteDoc||'',
+    tipoCliente, pago, desc:desc||0, cajero };
+}
+
+/* ===== clientes =====================================================
+   Un cliente es un registro, no un texto suelto: así el nombre se escribe
+   una sola vez y el fiado nunca se parte en dos por una tilde de más.
+   El documento (DNI/RUC) es la llave rápida del mostrador. */
+let CLIENTES = [];
+const soloDigitos = s => String(s||'').replace(/\D/g,'');
+const cliKey = s => String(s||'').trim().toUpperCase();
+
+function buildClientes(){
+  return CLIENTES_DEMO.map((c,i)=>({ id:'C'+pad(i+1), nombre:c[0], doc:c[1], tipo:c[2], tel:c[3]||'' }));
+}
+function clientePorDoc(doc){
+  const d = soloDigitos(doc);
+  return d ? CLIENTES.find(c=>soloDigitos(c.doc)===d) || null : null;
+}
+function clientePorNombre(nom){
+  const k = cliKey(nom);
+  return k ? CLIENTES.find(c=>cliKey(c.nombre)===k) || null : null;
+}
+function clientePorId(id){ return CLIENTES.find(c=>c.id===id) || null; }
+// Busca por nombre o por documento, con o sin guiones.
+function buscarClientes(q, max){
+  const t = String(q||'').trim();
+  if(!t) return CLIENTES.slice(0, max||8);
+  const k = t.toUpperCase(), d = soloDigitos(t);
+  return CLIENTES.filter(c => c.nombre.toUpperCase().includes(k) || (d && soloDigitos(c.doc).includes(d)))
+                 .slice(0, max||8);
+}
+function altaCliente({nombre, doc, tipo, tel}){
+  nombre = String(nombre||'').trim();
+  if(!nombre) return null;
+  const ya = clientePorNombre(nombre) || (doc ? clientePorDoc(doc) : null);
+  if(ya) return ya;
+  const c = { id:'C'+(CLIENTES.length+1+Math.floor(Math.random()*1000)), nombre,
+              doc:String(doc||'').trim(), tipo: tipo==='mayorista'?'mayorista':'publico', tel:String(tel||'').trim() };
+  CLIENTES.push(c); saveClientes();
+  return c;
 }
 
 /* ===== almacenamiento (demo: solo este navegador) ===== */
-const K_VENTAS='fsr_ventas', K_CAT='fsr_catalogo', K_CFG='fsr_cfg', K_ABONOS='fsr_abonos', K_SEQ='fsr_seq';
+const K_VENTAS='fsr_ventas', K_CAT='fsr_catalogo', K_CFG='fsr_cfg', K_ABONOS='fsr_abonos',
+      K_SEQ='fsr_seq', K_CLI='fsr_clientes';
 const DEFAULT_REPO = { ventana:8, lead:1, colchon:0.5, cobertura:4, dormido:60 };
 const DEFAULT_CFG = {
   negocio:{ nombre:'Ferretería Santa Rosa E.I.R.L.', ruc:'20601447789',
@@ -140,10 +185,12 @@ function saveVentas(){ try{ localStorage.setItem(K_VENTAS, JSON.stringify(VENTAS
 function saveCfg(){ try{ localStorage.setItem(K_CFG, JSON.stringify(CFG)); }catch(e){} }
 function saveAbonos(){ try{ localStorage.setItem(K_ABONOS, JSON.stringify(ABONOS)); }catch(e){} }
 function saveSeq(){ try{ localStorage.setItem(K_SEQ, String(SEQ)); }catch(e){} }
+function saveClientes(){ try{ localStorage.setItem(K_CLI, JSON.stringify(CLIENTES)); }catch(e){} }
 
 function sembrar(){
   PRODUCTS = buildCatalogo();
   rebuildIndex();
+  CLIENTES = buildClientes();
   VENTAS = buildHistorial();
   // stock actual coherente con lo que rota: entre 1 y 6 semanas de venta, y a
   // propósito unos cuantos quebrados y otros sobrestockeados.
@@ -168,7 +215,7 @@ function sembrar(){
   SEQ = 1000 + Math.max(0, ...VENTAS.map(v=>v.ticket-1000));
   ABONOS = [];
   aplicarMinimosSilencioso();
-  saveCat(); saveVentas(); saveCfg(); saveAbonos(); saveSeq();
+  saveCat(); saveVentas(); saveCfg(); saveAbonos(); saveSeq(); saveClientes();
 }
 function cargar(){
   try{
@@ -178,10 +225,11 @@ function cargar(){
     const g = localStorage.getItem(K_CFG); if(g) CFG = Object.assign(JSON.parse(JSON.stringify(DEFAULT_CFG)), JSON.parse(g));
     const a = localStorage.getItem(K_ABONOS); ABONOS = a ? JSON.parse(a) : [];
     const s = localStorage.getItem(K_SEQ); SEQ = s ? Number(s) : 1000;
+    const cl = localStorage.getItem(K_CLI); CLIENTES = cl ? JSON.parse(cl) : buildClientes();
   }catch(e){ console.error('cargar', e); sembrar(); }
 }
 function reiniciarDemo(){
-  [K_VENTAS,K_CAT,K_CFG,K_ABONOS,K_SEQ].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+  [K_VENTAS,K_CAT,K_CFG,K_ABONOS,K_SEQ,K_CLI].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
   sembrar();
 }
 
@@ -279,17 +327,22 @@ function aplicarMinimosSilencioso(){
 }
 
 /* ===== créditos ===== */
-const cliKey = s => String(s||'').trim().toUpperCase();
 function creditAccounts(){
   const m={};
-  VENTAS.forEach(v=>{ if(v.pago!=='credito') return; const k=cliKey(v.cliente);
-    (m[k]=m[k]||{cliente:v.cliente,fiado:0,abonado:0}).fiado += v.venta; });
-  ABONOS.forEach(a=>{ const k=cliKey(a.cliente);
-    (m[k]=m[k]||{cliente:a.cliente,fiado:0,abonado:0}).abonado += a.monto; });
+  const llave = x => x.clienteId || cliKey(x.cliente);
+  VENTAS.forEach(v=>{ if(v.pago!=='credito') return; const k=llave(v);
+    (m[k]=m[k]||{id:v.clienteId||'', cliente:v.cliente, doc:v.clienteDoc||'', fiado:0, abonado:0}).fiado += v.venta; });
+  ABONOS.forEach(a=>{ const k=llave(a);
+    (m[k]=m[k]||{id:a.clienteId||'', cliente:a.cliente, doc:'', fiado:0, abonado:0}).abonado += a.monto; });
   return Object.values(m).map(a=>Object.assign({}, a, {saldo:a.fiado-a.abonado}))
                          .sort((a,b)=>b.saldo-a.saldo);
 }
-const saldoOf = cli => { const a=creditAccounts().find(x=>cliKey(x.cliente)===cliKey(cli)); return a?a.saldo:0; };
+// Acepta un id de cliente o su nombre.
+function saldoOf(ref){
+  if(!ref) return 0;
+  const a = creditAccounts().find(x => x.id===ref || cliKey(x.cliente)===cliKey(ref));
+  return a ? a.saldo : 0;
+}
 
 /* ===== caja del día ===== */
 const METODOS = [['efectivo','Efectivo','💵'],['yape','Yape / Plin','📱'],['tarjeta','Tarjeta','💳'],

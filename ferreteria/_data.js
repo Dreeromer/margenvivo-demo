@@ -173,15 +173,19 @@ const SEED_SERVICIOS = [
   ['TRANSPORTE LOCAL','SERVICIOS','FLETE',0,15.00,25.00],
 ];
 
+// Clientes ya registrados. [nombre, documento, lista, teléfono]
+// El documento es la llave rápida: se dicta el número y sale el nombre solo.
 const CLIENTES_DEMO = [
-  ['Público general','', 'publico'],
-  ['Constructora Vega S.A.C.','20601188442','mayorista'],
-  ['Maestro Julio Ramos','','mayorista'],
-  ['Multiservicios Chiclayo E.I.R.L.','20605511230','mayorista'],
-  ['Sra. Carmen Díaz','','publico'],
-  ['Gasfitería Don Beto','','mayorista'],
-  ['Colegio San Agustín','20487711256','mayorista'],
-  ['Sr. Manuel Torres','','publico'],
-  ['Obra Los Cedros','','mayorista'],
-  ['Sra. Rosa Quispe','','publico'],
+  ['Constructora Vega S.A.C.','20601188442','mayorista','944 512 003'],
+  ['Multiservicios Chiclayo E.I.R.L.','20605511230','mayorista','979 330 415'],
+  ['Colegio San Agustín','20487711256','mayorista','074 233 118'],
+  ['Ferretería El Progreso','20612004477','mayorista','956 887 221'],
+  ['Julio Ramos Chávez','16742093','mayorista','948 220 671'],
+  ['Beto Sandoval (gasfitero)','17033518','mayorista','931 774 202'],
+  ['Obra Los Cedros – Ing. Palacios','16998240','mayorista','961 405 338'],
+  ['Carmen Díaz Vera','16880451','publico','950 118 774'],
+  ['Manuel Torres Effio','17120665','publico','942 663 190'],
+  ['Rosa Quispe Alarcón','44219087','publico','986 210 553'],
+  ['Luis Farroñán Suclupe','43880112','publico','973 445 208'],
+  ['Marina Castillo Bravo','45771320','publico','918 072 664'],
 ];
