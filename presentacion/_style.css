@@ -138,7 +138,22 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 .campo label{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;
   text-transform:uppercase;color:var(--gris);margin-bottom:9px}
 .campo .val{font-family:"IBM Plex Mono",monospace;font-size:27px;font-weight:600;letter-spacing:-.03em;margin-bottom:13px}
-.calc-out{margin-top:32px;padding-top:28px;border-top:1px solid var(--traza2);text-align:center}
+.calc-out{margin-top:30px;padding-top:26px;border-top:1px solid var(--traza2)}
+.calc-tres{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--traza2);
+  border:1px solid var(--traza2);border-radius:5px;overflow:hidden;margin-bottom:26px}
+@media(max-width:640px){.calc-tres{grid-template-columns:1fr}}
+.calc-tres > div{background:var(--hoja);padding:17px 18px}
+.calc-tres .r{font-family:"IBM Plex Mono",monospace;font-size:clamp(19px,2.3vw,26px);font-weight:600;
+  letter-spacing:-.035em;margin-top:7px;line-height:1}
+.calc-tres .r.v{color:var(--vivo)}
+.calc-tres .e{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--gris)}
+.calc-centro{text-align:center}
+.retorno{margin-top:24px;background:var(--vivo-soft);border-radius:6px;padding:16px 20px;text-align:center;
+  font-size:15px;color:var(--vivo-d);font-weight:600}
+.retorno b{color:var(--vivo-d);font-weight:800}
+.de-donde{margin-top:18px;font-size:13.5px;color:var(--acero);text-align:center;max-width:64ch;
+  margin-left:auto;margin-right:auto;line-height:1.5}
 .calc-out .k{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.15em;
   text-transform:uppercase;color:var(--gris)}
 .calc-out .big{font-family:"IBM Plex Mono",monospace;font-size:clamp(42px,7.5vw,84px);font-weight:600;
@@ -170,15 +185,20 @@ input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;bac
 .paso p{margin:0;color:var(--acero);font-size:15px;max-width:58ch}
 
 /* cierre */
-.cierre{background:var(--tinta);color:var(--papel);border-radius:8px;padding:clamp(38px,6vw,72px);
-  margin-top:44px;position:relative;overflow:hidden}
+.cierre{background:linear-gradient(158deg,#0E3F39 0%,#0B1014 62%);color:#F4F6F8;border-radius:8px;
+  padding:clamp(38px,6vw,72px);margin-top:44px;position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.10)}
 .cierre::before{content:'';position:absolute;top:0;left:0;right:0;height:9px;
   background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 1px,transparent 1px 8px)}
-.cierre h2{color:var(--papel)}
-.cierre .parr{color:rgba(255,255,255,.72);max-width:56ch}
+.cierre h2{color:#FFFFFF}
+.cierre .parr{color:rgba(255,255,255,.78);max-width:56ch}
+.cierre .parr b{color:#FFFFFF}
+.cierre .rotulo{color:rgba(255,255,255,.55)}
+.cierre .rotulo::before{background:#28C9B4}
 .precio{font-family:"IBM Plex Mono",monospace;font-size:clamp(46px,8vw,88px);font-weight:600;
   letter-spacing:-.05em;line-height:1;margin:30px 0 4px}
-.precio small{font-size:.3em;font-weight:600;letter-spacing:0;color:rgba(255,255,255,.6);margin-left:10px}
+.precio{color:#FFFFFF}
+.precio small{font-size:.3em;font-weight:600;letter-spacing:0;color:rgba(255,255,255,.62);margin-left:10px}
 .incluye{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
 .incluye span{font-size:12.5px;padding:6px 13px;border:1px solid rgba(255,255,255,.22);border-radius:20px;
   color:rgba(255,255,255,.86)}

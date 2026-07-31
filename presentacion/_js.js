@@ -52,13 +52,27 @@ function pintarCorte(){
 mg.addEventListener('input', pintarCorte);
 pintarCorte();
 
-/* calculadora: cuánto vale un punto de margen */
+/* calculadora: cuánto vale un punto de margen, y si eso paga el sistema */
+const COSTO_ANUAL = 200 * 12;
 const cv = $('#cVenta'), cm = $('#cMargen');
 function pintarCalc(){
   const venta = +cv.value, margen = +cm.value;
+  const anual = venta * 12;
+  const utilidad = anual * margen/100;
+  const punto = anual * 0.01;
+  const veces = punto / COSTO_ANUAL;
+
   $('#cVentaVal').textContent  = S_(venta);
   $('#cMargenVal').textContent = margen + '%';
-  $('#cResultado').textContent = S_(venta * 0.01 * 12);   // un punto, todo el año
+  $('#cAnual').textContent     = S_(anual);
+  $('#cUtilidad').textContent  = S_(utilidad);
+  $('#cResultado').textContent = S_(punto);
+  $('#cUtilidad').classList.toggle('v', true);
+
+  // honesto en los dos sentidos: si un punto no alcanza, se dice
+  $('#cRetorno').innerHTML = veces >= 1.15
+    ? `Un punto de margen paga el sistema <b>${veces < 10 ? veces.toFixed(1) : Math.round(veces)} veces</b>.`
+    : `Con recuperar <b>${(COSTO_ANUAL/punto).toFixed(1)} puntos</b> de margen, el sistema ya se pagó solo.`;
 }
 cv.addEventListener('input', pintarCalc);
 cm.addEventListener('input', pintarCalc);
