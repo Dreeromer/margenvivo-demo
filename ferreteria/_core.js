@@ -23,6 +23,11 @@ function mulberry(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0;
 
 /* ===== catálogo ===== */
 // tipo: 'producto' (tiene costo) | 'servicio' (sin costo, todo es líquido)
+function marcaDe(nombre, tipo){
+  if(tipo==='servicio') return 'SERVICIO PROPIO';
+  for(const [re, m] of MARCAS_REGLAS) if(re.test(nombre)) return m;
+  return SIN_MARCA;
+}
 let PRODUCTS = [], BY_SKU = {}, BY_NAME = {};
 function buildCatalogo(){
   const rnd = mulberry(20260731);
@@ -31,7 +36,7 @@ function buildCatalogo(){
   const push = (row, tipo) => {
     const [nombre,cat,unidad,costo,lista,publico] = row;
     i++;
-    out.push({ sku:'F'+pad(i), nombre, cat, unidad, costo, lista, publico, tipo,
+    out.push({ sku:'F'+pad(i), nombre, cat, unidad, costo, lista, publico, tipo, marca:marcaDe(nombre,tipo),
       // stock inicial: proporcional a lo que rota, con algunos quebrados a propósito
       stock:0, stock_min:0, track: tipo!=='servicio' });
   };
@@ -116,7 +121,7 @@ function mkVenta({id, ticket, ts, prod, cant, precio, cliente, clienteId, client
   const costo = prod.tipo==='servicio' ? 0 : prod.costo;
   const costoT = Math.round(cant*costo*100)/100;
   const util = Math.round((venta-costoT)*100)/100;
-  return { id, ticket, ts, sku:prod.sku, producto:prod.nombre, cat:prod.cat, unidad:prod.unidad,
+  return { id, ticket, ts, sku:prod.sku, producto:prod.nombre, cat:prod.cat, marca:prod.marca||SIN_MARCA, unidad:prod.unidad,
     tipo:prod.tipo, cant, precio, venta, costo, costoT, util, margen: venta?util/venta:0,
     cliente: cliente||'', clienteId: clienteId||'', clienteDoc: clienteDoc||'',
     tipoCliente, pago, desc:desc||0, cajero };
@@ -324,6 +329,66 @@ function matrizOf(rows){
 const stockStatus = p => (!p.track||p.tipo==='servicio') ? 'off' : (p.stock<=0?'out':(p.stock<=p.stock_min?'low':'ok'));
 function aplicarMinimosSilencioso(){
   repoRows().forEach(r=>{ if(r.minSug>0){ const p=BY_SKU[r.sku]; if(p) p.stock_min=r.minSug; } });
+}
+
+/* ===== indicadores de gestión =====================================
+   Las fórmulas del rubro (cobertura, rotación, GMROI) trabajan sobre el
+   INVENTARIO PROMEDIO AL COSTO. Todavía no guardamos fotos del inventario,
+   así que se usa el valor de hoy como referencia y se marca como aproximado.
+   Cuando haya historial semanal, solo cambia esta función. */
+function valorInventario(){
+  return PRODUCTS.reduce((s,p)=> p.tipo==='servicio' ? s : s + (Number(p.stock)||0)*(Number(p.costo)||0), 0);
+}
+// Resume un conjunto de ventas: lo que se usa en todos los tableros.
+function resumen(ventas){
+  const venta = ventas.reduce((s,v)=>s+v.venta,0);
+  const util  = ventas.reduce((s,v)=>s+v.util,0);
+  const costo = ventas.reduce((s,v)=>s+v.costoT,0);
+  const tickets = new Set(ventas.map(v=>v.ticket)).size;
+  return { venta, util, costo, tickets, lineas:ventas.length,
+           margen: venta?util/venta:0,
+           ticketProm: tickets?venta/tickets:0,
+           // ítems por venta: con unidades mezcladas (kg, metros, bolsas) sumar
+           // cantidades no significa nada; lo que sí compara es cuántos productos
+           // distintos se lleva cada cliente.
+           itemsPorVenta: tickets?ventas.length/tickets:0 };
+}
+// GMROI: cuánta utilidad deja cada sol invertido en mercadería, al año.
+// Rotación: cuántas veces al año se renueva el inventario.
+function indicadoresInv(ventas, semanas){
+  const inv = valorInventario();
+  const r = resumen(ventas);
+  const anual = semanas>0 ? 52/semanas : 0;
+  return { inventario:inv,
+           gmroi:    inv>0 ? (r.util *anual)/inv : 0,
+           rotacion: inv>0 ? (r.costo*anual)/inv : 0,
+           aprox: true };
+}
+// Pareto: participación y acumulado por marca o por categoría.
+function paretoPor(ventas, campo){
+  const by = {};
+  ventas.forEach(v=>{ const k = v[campo] || SIN_MARCA;
+    (by[k] = by[k] || {n:k, venta:0, util:0, lineas:0});
+    by[k].venta += v.venta; by[k].util += v.util; by[k].lineas++; });
+  const arr = Object.values(by).sort((a,b)=>b.venta-a.venta);
+  const total = arr.reduce((s,x)=>s+x.venta,0);
+  let acc = 0;
+  arr.forEach(x=>{ x.part = total?x.venta/total:0; acc += x.venta; x.acum = total?acc/total:0;
+                   x.margen = x.venta?x.util/x.venta:0; });
+  return { filas:arr, total };
+}
+// Los dos rankings que hay que ver juntos: lo que más sale y lo que más deja.
+function rankingProductos(ventas){
+  const by = {};
+  ventas.forEach(v=>{ const k=v.sku||v.producto;
+    (by[k] = by[k] || {sku:v.sku, nombre:v.producto, unidad:v.unidad, cat:v.cat,
+                       venta:0, util:0, cant:0});
+    by[k].venta+=v.venta; by[k].util+=v.util; by[k].cant+=v.cant; });
+  const arr = Object.values(by);
+  const total = arr.reduce((s,x)=>s+x.venta,0);
+  arr.forEach(x=>{ x.margen = x.venta?x.util/x.venta:0; x.part = total?x.venta/total:0; });
+  return { porVenta: arr.slice().sort((a,b)=>b.venta-a.venta),
+           porUtilidad: arr.slice().sort((a,b)=>b.util-a.util), total };
 }
 
 /* ===== créditos ===== */

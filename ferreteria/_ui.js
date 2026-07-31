@@ -3,7 +3,7 @@ let ROL = null;                      // 'recepcion' | 'dueno'
 let CART = nuevoCarrito();
 let SEL = null;                      // producto elegido
 let panelDia = null, panelSemana = null, invTab='exist', invFilter='track', repoFilter='pedir';
-let topMetric='venta', credSel=null, ultimoTicket=null;
+let credSel=null, ultimoTicket=null;
 let cobroPaso = 'idle', cobroCodigo = '';
 
 function nuevoCarrito(){

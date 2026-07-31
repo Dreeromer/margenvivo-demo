@@ -127,6 +127,14 @@
   </div>
   <div class="kpis" id="panelKpis"></div>
 
+  <div class="card acc-card" style="margin-top:16px">
+    <div class="card-h"><h2>Qué hacer esta semana</h2>
+      <span class="tag">lo que hay que decidir hoy</span>
+      <button class="btn sm primary" style="margin-left:auto" onclick="abrirInventario('repo')">Ver la orden de compra</button></div>
+    <div class="kpis" id="accKpis" style="grid-template-columns:repeat(auto-fit,minmax(168px,1fr))"></div>
+    <div class="sec"><div class="st">Lo primero que hay que pedir</div><div id="accLista"></div></div>
+  </div>
+
   <div class="card" style="margin-top:16px">
     <div class="card-h"><h2>La semana, día por día</h2>
       <span class="sub" id="semLbl" style="font-size:12.5px;margin:0"></span>
@@ -134,6 +142,26 @@
     <div class="scene"><div class="stage" id="stage"></div></div>
     <div class="axis"></div>
     <div class="chart-legend" id="semLeg"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-h"><h2>Lo que más sale y lo que más deja</h2>
+      <span class="tag">casi nunca es lo mismo</span></div>
+    <div class="rk2">
+      <div><p class="eyebrow" style="margin:0 0 10px">Top ventas · lo que más rota</p><div id="rkVenta"></div></div>
+      <div><p class="eyebrow" style="margin:0 0 10px">Top márgenes · lo que más utilidad deja</p><div id="rkUtil"></div></div>
+    </div>
+    <div class="insight" id="rkNota"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="card-h"><h2>Dónde se concentra la venta</h2>
+      <span class="tag" id="parTitulo"></span>
+      <div class="seg" style="margin-left:auto">
+        <button id="parByM" class="seg-b active" onclick="setPareto('marca')">Por marca</button>
+        <button id="parByC" class="seg-b" onclick="setPareto('cat')">Por rubro</button></div></div>
+    <p class="sub" style="font-size:12.5px;margin:0 0 12px" id="parNota"></p>
+    <div id="parBody"></div>
   </div>
 
   <div class="panels">
@@ -148,13 +176,6 @@
       <div class="card-h"><h2>Dónde se gana y dónde no</h2><span class="tag">margen por rubro</span></div>
       <div class="bars" id="panelCat"></div>
     </div>
-  </div>
-
-  <div class="card" style="margin-top:16px">
-    <div class="card-h"><h2>Lo más vendido</h2>
-      <div class="seg"><button id="topByV" class="seg-b active" onclick="setTop('venta')">Por venta</button>
-        <button id="topByC" class="seg-b" onclick="setTop('cant')">Por cantidad</button></div></div>
-    <div class="bars" id="panelTop"></div>
   </div>
 
   <div class="insight" id="panelInsight"></div>

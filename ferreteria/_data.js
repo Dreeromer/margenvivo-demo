@@ -173,6 +173,30 @@ const SEED_SERVICIOS = [
   ['TRANSPORTE LOCAL','SERVICIOS','FLETE',0,15.00,25.00],
 ];
 
+// Marca por producto. Se deduce del nombre: en ferretería la marca pesa tanto
+// como la categoría (nadie pide "cemento", pide "un Pacasmayo").
+// Lo que no calza en ninguna regla es mercadería sin marca, que en el rubro es
+// la mayor parte de la venta — igual que el genérico chino en repuestos.
+const MARCAS_REGLAS = [
+  [/PACASMAYO/,                                          'PACASMAYO'],
+  [/FIERRO|ALAMBRE NEGRO/,                               'ACEROS AREQUIPA'],
+  [/TUBO PVC|CODO PVC|TEE PVC|UNIÓN UNIVERSAL|PEGAMENTO PVC|TUBO CORRUGADO/, 'PAVCO'],
+  [/GRIFERÍA|DUCHA|LLAVE DE PASO|TRAMPA P|TANQUE ELEVADO/,'VAINSA'],
+  [/CABLE /,                                             'INDECO'],
+  [/INTERRUPTOR|TOMACORRIENTE|CAJA RECTANGULAR|CAJA OCTOGONAL|LLAVE TÉRMICA/, 'BTICINO'],
+  [/FOCO LED|REFLECTOR LED|PORTALÁMPARA/,                'OPALUX'],
+  [/MARTILLO|CINTA MÉTRICA|NIVEL DE ALUMINIO|SERRUCHO|ESCUADRA CARPINTERO/, 'STANLEY'],
+  [/ALICATE|DESARMADOR|JUEGO DE DESARMADORES|LLAVE FRANCESA|LLAVE STILSON|LLAVES MIXTAS|JUEGO DE DADOS|BADILEJO|PLANCHA DE BATIR|CARRETILLA/, 'TRUPER'],
+  [/TALADRO|AMOLADORA|ESMERIL|DISCO |BROCA|JUEGO DE BROCAS/, 'BOSCH'],
+  [/LÁTEX|ESMALTE|IMPRIMANTE/,                           'AMERICAN COLORS'],
+  [/THINNER|MASILLA|BROCHA|RODILLO|LIJA/,                'ANYPSA'],
+  [/CINTA AISLANTE|CINTA MASKING|CINTA EMBALAJE/,        '3M'],
+  [/GUANTES|LENTES DE SEGURIDAD|CASCO|MASCARILLA|CHALECO|ZAPATO DE SEGURIDAD|ARNÉS/, 'STEELPRO'],
+  [/CANDADO|CERRADURA|BISAGRA|PICAPORTE|JALADOR/,        'FORTE'],
+  [/SOLDIMIX|PEGAMENTO EXTRA|SILICONA/,                  'SOLDIMIX'],
+];
+const SIN_MARCA = 'SIN MARCA';
+
 // Clientes ya registrados. [nombre, documento, lista, teléfono]
 // El documento es la llave rápida: se dicta el número y sale el nombre solo.
 const CLIENTES_DEMO = [

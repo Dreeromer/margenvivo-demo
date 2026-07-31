@@ -18,9 +18,11 @@ function renderPanel(){
   sel.value = String(panelSemana);
 
   const all = ventasFiltradas();
-  const venta = all.reduce((s,v)=>s+v.venta,0), util = all.reduce((s,v)=>s+v.util,0);
-  const tickets = new Set(all.map(v=>v.ticket)).size;
-  const mg = venta?util/venta*100:0;
+  const R = resumen(all);
+  const venta = R.venta, util = R.util, tickets = R.tickets, mg = R.margen*100;
+  const semanasPeriodo = (panelSemana==='all'||panelSemana==null)
+    ? Math.max(1, new Set(VENTAS.map(v=>weekStart(v.ts))).size) : 1;
+  const IND = indicadoresInv(all, diaSel!=null ? semanasPeriodo/5 : semanasPeriodo);
   const bajos = all.filter(v=>v.tipo!=='servicio' && v.margen<CFG.pisoMargen).length;
   const lowStock = PRODUCTS.filter(p=>{const s=stockStatus(p);return s==='low'||s==='out';}).length;
   const porPedir = repoRows().filter(r=>r.pedir>0).length;
@@ -31,23 +33,35 @@ function renderPanel(){
     + (diaSel!=null ? ` · <b>${fullDay(diaSel)}</b> <button class="btn sm ghost" onclick="verTodaLaSemana()">quitar filtro</button>` : '')
     + ` · ${tickets} tickets`;
 
-  g('panelKpis').innerHTML = [
+  const kpis = [
     {kl:'Venta', kv:kf(venta), c:'br'},
     {kl:'Utilidad', kv:kf(util), c:'good'},
     {kl:'Margen', kv:mg.toFixed(1)+'%'},
     {kl:'Tickets', kv:tickets.toLocaleString('es-PE')},
-    {kl:'Ticket promedio', kv:money0(tickets?venta/tickets:0)},
+    {kl:'Ticket promedio', kv:money0(R.ticketProm)},
+    {kl:'Ítems por venta', kv:R.itemsPorVenta.toFixed(2),
+     tip:'Cuántos productos distintos se lleva cada cliente. Subirlo es la forma más barata de vender más: se le vende al que ya está en el mostrador.'},
+    {kl:'GMROI', kv:IND.gmroi.toFixed(2),
+     tip:`Por cada S/ 1 invertido en mercadería ganas S/ ${IND.gmroi.toFixed(2)} al año. Calculado sobre el inventario de hoy (${money0(IND.inventario)}) — se afina cuando haya historial semanal.`},
     {kl:'Bajo piso', kv:bajos, c:bajos?'warn':''},
     {kl:'Stock bajo', kv:lowStock, c:lowStock?'warn':'', click:"abrirInventario('low')"},
     {kl:'Por pedir', kv:porPedir, c:porPedir?'warn':'', click:"abrirInventario('repo')"},
     {kl:'Por cobrar', kv:kf(porCobrar), c:porCobrar>0?'bad':'', click:'abrirCreditos()'},
-  ].map(k=>`<div class="kpi ${k.c||''} ${k.click?'act':''}"${k.click?` onclick="${k.click}" title="Ver detalle"`:''}>
-      <div class="kl">${k.kl}</div><div class="kv num">${k.kv}</div></div>`).join('');
+  ];
+  // los textos de ayuda se guardan aparte: meterlos dentro del atributo obliga a
+  // anidar comillas y ahí es donde se rompe el HTML
+  _kpiTips = kpis.map(k=>k.tip ? {t:k.kl, d:k.tip} : null);
+  g('panelKpis').innerHTML = kpis.map((k,i)=>
+    `<div class="kpi ${k.c||''} ${k.click?'act':''}"${k.click?` onclick="${k.click}" title="Ver detalle"`:''}`
+    + `${k.tip?` onmouseenter="tipKpi(event,${i})" onmousemove="tipMove(event)" onmouseleave="tipOff()"`:''}>`
+    + `<div class="kl">${k.kl}</div><div class="kv num">${k.kv}</div></div>`).join('');
 
+  renderAcciones();
   renderSemana3D();
+  renderDobleRanking(all);
+  renderPareto(all);
   renderCaja();
   renderCategorias(all);
-  renderTop(all);
   renderInsight(all, {venta, util, mg, porCobrar});
   renderTickets(all);
 }
@@ -65,12 +79,18 @@ function renderSemana3D(){
   VENTAS.forEach(v=>{ if(weekStart(v.ts)!==ws) return;
     const d = dias[(new Date(v.ts).getDay()+6)%7];
     d.venta += v.venta; d.util += v.util; d.tickets.add(v.ticket); });
-  const mx = Math.max(1, ...dias.map(d=>d.venta));
+  // la semana anterior, para comparar día contra día
+  const prevWs = ws - SEM_MS;
+  const prev = new Array(7).fill(0);
+  VENTAS.forEach(v=>{ if(weekStart(v.ts)===prevWs) prev[(new Date(v.ts).getDay()+6)%7] += v.venta; });
+  const mx = Math.max(1, ...dias.map(d=>d.venta), ...prev);
   const H = 150;
   const hoy = dayStart(Date.now());
+  _prev = prev;
   g('stage').className = 'stage'+(chart3d?'':' flat');
   g('stage').innerHTML = dias.map(d=>{
     const h = Math.max(3, Math.round(d.venta/mx*H));
+    const hp = prev[d.i] ? Math.max(2, Math.round(prev[d.i]/mx*H)) : 0;
     const on = diaSel===dayStart(d.ts);
     return `<div class="col3 ${on?'on':''}" data-i="${d.i}"
       onmouseenter="tipDia(event,${d.i})" onmousemove="tipMove(event)" onmouseleave="tipOff()"
@@ -80,26 +100,38 @@ function renderSemana3D(){
       <span class="face" style="height:${h}px"></span>
       <span class="side" style="height:${h}px"></span>
       <span class="top" style="bottom:${h}px"></span>
+      ${hp?`<span class="ghost" style="bottom:${hp}px" title="semana anterior"></span>`:''}
       <span class="cap">${DIAS[d.i]}${dayStart(d.ts)===hoy?' •':''}</span></div>`;
   }).join('');
   const tot = dias.reduce((s,d)=>s+d.venta,0), ut = dias.reduce((s,d)=>s+d.util,0);
+  const totPrev = prev.reduce((s,x)=>s+x,0);
   const mejor = dias.slice().sort((a,b)=>b.venta-a.venta)[0];
+  let cmp = '';
+  if(totPrev>0){ const dif=(tot-totPrev)/totPrev*100, sube=dif>=0;
+    cmp = `<span>vs. semana anterior: <b class="${sube?'txt-good':'txt-bad'}">${sube?'▲':'▼'} ${Math.abs(dif).toFixed(0)}%</b>
+           <span class="dim num">(${money0(totPrev)})</span></span>`; }
   g('semLeg').innerHTML = `<span>Semana: <b class="num">${money0(tot)}</b></span>`
     + `<span>Margen: <b class="num">${tot?(ut/tot*100).toFixed(1):'0'}%</b></span>`
+    + cmp
     + (mejor.venta?`<span>Mejor día: <b>${DIAS[mejor.i]}</b> con <b class="num">${money0(mejor.venta)}</b></span>`:'')
-    + `<span class="dim">Toca un día para filtrar</span>`;
+    + `<span class="dim">${totPrev>0?'La línea punteada es la semana anterior. ':''}Toca un día para filtrar</span>`;
   _dias = dias;
 }
-let _dias = [];
+let _dias = [], _prev = [], _kpiTips = [];
+function tipKpi(ev, i){ const t=_kpiTips[i]; if(!t) return;
+  mostrarTip('<div class="tt">'+esc(t.t)+'</div><div style="opacity:.85;line-height:1.45">'+esc(t.d)+'</div>', ev); }
 function filtrarDia(ts){ diaSel = (diaSel===ts) ? null : ts; renderPanel(); }
 function tipDia(ev, i){
   const d = _dias[i]; if(!d) return;
   const mg = d.venta ? d.util/d.venta*100 : 0;
+  const p = _prev[i]||0;
+  const cmp = p>0 ? `<div class="tr"><span>Semana anterior</span><b class="num">${money(p)}</b></div>
+    <div class="tr"><span>Diferencia</span><b class="num">${d.venta>=p?'▲':'▼'} ${Math.abs((d.venta-p)/p*100).toFixed(0)}%</b></div>` : '';
   mostrarTip(`<div class="tt">${fullDay(d.ts)}</div>
     <div class="tr"><span>Venta</span><b class="num">${money(d.venta)}</b></div>
     <div class="tr"><span>Utilidad</span><b class="num">${money(d.util)}</b></div>
     <div class="tr"><span>Margen</span><b class="num">${mg.toFixed(1)}%</b></div>
-    <div class="tr"><span>Tickets</span><b class="num">${d.tickets.size}</b></div>`, ev);
+    <div class="tr"><span>Tickets</span><b class="num">${d.tickets.size}</b></div>${cmp}`, ev);
 }
 function mostrarTip(html, ev){ const t=g('tip'); t.innerHTML=html; t.classList.add('on'); tipMove(ev); }
 function tipMove(ev){ const t=g('tip');
@@ -172,24 +204,6 @@ function renderCategorias(all){
       <span class="bar-v num">${c.mg.toFixed(1)}%</span></div>`;
   }).join('') || vacio();
 }
-function setTop(m){ topMetric=m;
-  g('topByV').classList.toggle('active', m==='venta');
-  g('topByC').classList.toggle('active', m==='cant');
-  renderTop(ventasFiltradas()); }
-function renderTop(all){
-  const by = {};
-  all.forEach(v=>{ (by[v.producto]=by[v.producto]||{venta:0,cant:0,util:0,unidad:v.unidad});
-    by[v.producto].venta+=v.venta; by[v.producto].cant+=v.cant; by[v.producto].util+=v.util; });
-  const arr = Object.entries(by).map(([n,d])=>({n,...d})).sort((a,b)=>b[topMetric]-a[topMetric]).slice(0,8);
-  const mx = Math.max(1,...arr.map(x=>x[topMetric]));
-  g('panelTop').innerHTML = arr.map(x=>
-    `<div class="bar-row" onmouseenter="mostrarTip('<div class=\\'tt\\'>${esc(x.n)}</div><div class=\\'tr\\'><span>Vendido</span><b>${money(x.venta)}</b></div><div class=\\'tr\\'><span>Cantidad</span><b>${un(x.cant)} ${esc(x.unidad)}</b></div><div class=\\'tr\\'><span>Utilidad</span><b>${money(x.util)}</b></div>',event)" onmousemove="tipMove(event)" onmouseleave="tipOff()">
-     <span class="bar-l">${esc(x.n)}</span>
-     <span class="bar-t"><span class="bar-f" style="width:${Math.max(5,x[topMetric]/mx*100)}%"></span></span>
-     <span class="bar-v num">${topMetric==='cant'? un(x.cant)+' '+esc(x.unidad) : kf(x.venta)}</span></div>`
-  ).join('') || vacio();
-}
-
 function renderInsight(all, k){
   const box = g('panelInsight');
   if(!all.length){ box.innerHTML = `<span class="i">!</span><div>No hay ventas en este periodo. Cambia de semana arriba.</div>`; return; }
@@ -251,4 +265,106 @@ function bajar(txt, nombre){
   const blob = new Blob([txt],{type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob), a = document.createElement('a');
   a.href=url; a.download=nombre; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+/* =========================================================================
+   Lo que más sale vs. lo que más deja.
+   Puestos uno al lado del otro porque casi nunca son la misma lista, y ver
+   esa diferencia es lo que cambia la forma de comprar.
+   ========================================================================= */
+function fichaProducto(x, i, metrica){
+  const cob = repoRows().find(r=>r.sku===x.sku);
+  const sem = (cob && cob.demSem>0 && cob.track)
+    ? `<span class="pill ${repoNivel(cob)==='urgente'?'bad':(repoNivel(cob)==='pronto'?'warn':'good')}">${cob.cobertura===Infinity?'∞':un(cob.cobertura)+' sem'}</span>`
+    : '';
+  const mgCls = x.margen<CFG.pisoMargen ? 'txt-bad' : (x.margen<0.25 ? 'txt-warn' : 'txt-good');
+  return `<div class="rk ${i===0?'top':''}">
+    <div class="rk-h"><span class="rk-i">${i===0?'★':String(i+1).padStart(2,'0')}</span>
+      <span class="rk-n">${esc(x.nombre)}<small>${esc(x.sku||'')} · ${esc(x.cat||'')}</small></span>${sem}</div>
+    <div class="rk-g">
+      <div><span class="rk-l">Venta</span><b class="num">${money0(x.venta)}</b></div>
+      <div><span class="rk-l">Utilidad</span><b class="num">${money0(x.util)}</b></div>
+      <div><span class="rk-l">Margen</span><b class="num ${mgCls}">${(x.margen*100).toFixed(1)}%</b></div>
+      <div><span class="rk-l">Cantidad</span><b class="num">${un(x.cant)} ${esc(x.unidad||'')}</b></div>
+    </div>
+    <div class="rk-b"><span class="rk-l">Participación de venta</span>
+      <span class="bar-t"><span class="bar-f" style="width:${Math.max(3,x.part*100/(metrica||1)*100)}%"></span></span>
+      <span class="num">${(x.part*100).toFixed(1)}%</span></div>
+  </div>`;
+}
+function renderDobleRanking(all){
+  const R = rankingProductos(all);
+  const maxPart = Math.max(0.01, ...R.porVenta.slice(0,5).map(x=>x.part));
+  g('rkVenta').innerHTML = R.porVenta.slice(0,5).map((x,i)=>fichaProducto(x,i,maxPart)).join('') || vacio();
+  g('rkUtil').innerHTML  = R.porUtilidad.slice(0,5).map((x,i)=>fichaProducto(x,i,maxPart)).join('') || vacio();
+  // el hallazgo: cuántos de los que más venden NO están entre los que más dejan
+  const topV = R.porVenta.slice(0,5).map(x=>x.sku);
+  const topU = R.porUtilidad.slice(0,5).map(x=>x.sku);
+  const fuera = topV.filter(s=>topU.indexOf(s)<0).length;
+  g('rkNota').innerHTML = R.porVenta.length
+    ? (fuera
+      ? `<span class="i">!</span><div><b>${fuera} de tus 5 productos más vendidos no están entre los 5 que más utilidad dejan.</b> Mueves mucha mercadería que deja poco: ahí es donde conviene revisar el precio o negociar el costo con el proveedor.</div>`
+      : `<span class="i">!</span><div>Lo que más vendes también es lo que más te deja. Es raro y es buena señal: tu mezcla está bien armada.</div>`)
+    : `<span class="i">!</span><div>Sin ventas en este periodo.</div>`;
+}
+
+/* ── Pareto por marca o por rubro, con acumulado ── */
+let paretoCampo = 'marca';
+function setPareto(c){ paretoCampo = c;
+  g('parByM').classList.toggle('active', c==='marca');
+  g('parByC').classList.toggle('active', c==='cat');
+  renderPareto(ventasFiltradas()); }
+function renderPareto(all){
+  const P = paretoPor(all, paretoCampo);
+  const filas = P.filas.slice(0,12);
+  const mx = Math.max(0.01, ...filas.map(f=>f.part));
+  g('parTitulo').textContent = paretoCampo==='marca' ? `${P.filas.length} marcas` : `${P.filas.length} rubros`;
+  // cuántos hacen el 80% de la venta: el número que ordena las compras
+  const vitales = P.filas.filter(f=>f.acum<=0.80).length + (P.filas.length?1:0);
+  g('parNota').innerHTML = P.filas.length
+    ? `<b>${Math.min(vitales,P.filas.length)}</b> de ${P.filas.length} ${paretoCampo==='marca'?'marcas':'rubros'} hacen el 80% de tu venta.`
+    : '';
+  g('parBody').innerHTML = filas.map((f,i)=>
+    `<div class="par ${f.acum<=0.80?'vital':''}" onmouseenter="tipPareto(event,'${esc(f.n).replace(/"/g,'')}',${f.venta},${f.util},${f.part},${f.acum})" onmousemove="tipMove(event)" onmouseleave="tipOff()">
+      <span class="par-i">${String(i+1).padStart(2,'0')}</span>
+      <span class="par-n">${esc(f.n)}<small>Acumulado ${(f.acum*100).toFixed(1)}%</small></span>
+      <span class="par-t"><span class="par-f" style="width:${Math.max(3,f.part/mx*100)}%"></span></span>
+      <span class="par-v num">${money0(f.venta)}<small>${(f.part*100).toFixed(1)}%</small></span>
+    </div>`).join('') || vacio();
+}
+function tipPareto(ev, n, venta, util, part, acum){
+  mostrarTip(`<div class="tt">${esc(n)}</div>
+    <div class="tr"><span>Venta</span><b class="num">${money(venta)}</b></div>
+    <div class="tr"><span>Utilidad</span><b class="num">${money(util)}</b></div>
+    <div class="tr"><span>Margen</span><b class="num">${venta?(util/venta*100).toFixed(1):'0'}%</b></div>
+    <div class="tr"><span>Participación</span><b class="num">${(part*100).toFixed(1)}%</b></div>
+    <div class="tr"><span>Acumulado</span><b class="num">${(acum*100).toFixed(1)}%</b></div>`, ev);
+}
+
+/* ── Qué hacer esta semana: la parte que la competencia no muestra ── */
+function renderAcciones(){
+  const rows = repoRows();
+  const pedir = rows.filter(r=>r.pedir>0).sort((a,b)=>(b.pedir*b.costo)-(a.pedir*a.costo));
+  const compra = pedir.reduce((s,r)=>s+r.pedir*r.costo,0);
+  const urgentes = rows.filter(r=>repoNivel(r)==='urgente');
+  const durm = dormidosOf(rows), capital = durm.reduce((s,r)=>s+r.capital,0);
+  const inv = valorInventario();
+
+  g('accKpis').innerHTML = [
+    {kl:'Comprar esta semana', kv:money0(compra), c:'br', sub:`${pedir.length} productos`},
+    {kl:'Se agotan ya', kv:urgentes.length, c:urgentes.length?'bad':'', sub:'antes del próximo pedido'},
+    {kl:'Capital dormido', kv:money0(capital), c:capital>0?'warn':'', sub:`${durm.length} productos parados`},
+    {kl:'Inventario al costo', kv:money0(inv), sub:'plata puesta en mercadería'},
+  ].map(k=>`<div class="kpi ${k.c||''}"><div class="kl">${k.kl}</div>
+      <div class="kv num">${k.kv}</div><div class="ks">${k.sub}</div></div>`).join('');
+
+  g('accLista').innerHTML = pedir.length
+    ? pedir.slice(0,6).map(r=>{
+        const nv = repoNivel(r);
+        return `<div class="acc">
+          <span class="acc-n">${esc(r.nombre)}<small>${esc(r.cat)} · sale ${un(r.demSem)} ${esc(r.unidad)}/sem · quedan ${un(r.stock)}</small></span>
+          <span class="pill ${nv==='urgente'?'bad':(nv==='pronto'?'warn':'good')}">${r.cobertura===Infinity?'∞':un(r.cobertura)+' sem'}</span>
+          <span class="acc-p"><b class="num">${un(r.pedir)} ${esc(r.unidad)}</b><small class="num">${money0(r.pedir*r.costo)}</small></span>
+        </div>`; }).join('')
+    : `<div class="dim" style="font-size:13px;padding:12px 0">No hay nada por pedir con el stock de hoy.</div>`;
 }
