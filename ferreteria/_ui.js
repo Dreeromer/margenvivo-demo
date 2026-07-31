@@ -291,19 +291,22 @@ function renderCobro(){
   const box = g('cobroCuerpo');
 
   if(m==='efectivo'){
-    const v = CART.recibido - t.total;
     const sug = [10,20,50,100,200].filter(x=>x>=t.total).slice(0,3);
     if(!sug.length) sug.push(Math.ceil(t.total/50)*50);
+    // Se pinta UNA vez. Al teclear solo se actualiza el vuelto: si aquí se
+    // redibujara todo, el input se destruiría y el foco se perdería en cada tecla.
     box.innerHTML = `
-      <label class="label">¿Con cuánto paga?</label>
-      <input type="number" min="0" step="0.5" id="efeInput" value="${CART.recibido||''}" placeholder="0.00" oninput="setRecibido(this.value)" autofocus>
+      <label class="label" for="efeInput">¿Con cuánto paga?</label>
+      <input type="number" min="0" step="0.5" id="efeInput" value="${CART.recibido||''}" placeholder="0.00"
+             inputmode="decimal" oninput="setRecibido(this.value)">
       <div class="bills">
-        <button class="bill" onclick="setRecibido(${t.total})">Justo</button>
-        ${sug.map(x=>`<button class="bill" onclick="setRecibido(${x})">S/ ${x}</button>`).join('')}
+        <button class="bill" onclick="ponerEfectivo(${t.total})">Justo</button>
+        ${sug.map(x=>`<button class="bill" onclick="ponerEfectivo(${x})">S/ ${x}</button>`).join('')}
       </div>
-      ${CART.recibido ? `<div class="change ${v>=0?'ok':'no'}"><span>${v>=0?'Vuelto':'Falta'}</span><b class="num">${money(Math.abs(v))}</b></div>` : ''}`;
-    g('cobroAccion').disabled = CART.recibido>0 && CART.recibido < t.total;
+      <div id="vueltoBox"></div>`;
     g('cobroAccion').textContent = 'Confirmar cobro';
+    actualizarVuelto();
+    setTimeout(()=>{ const e=g('efeInput'); if(e){ e.focus(); e.select(); } }, 50);
   }
 
   else if(m==='yape'){
@@ -372,10 +375,25 @@ function renderCobro(){
     g('cobroAccion').textContent = 'Anotar al fiado';
   }
 }
+// Al teclear: no se redibuja el modal, solo el vuelto. Así se puede escribir de corrido.
 function setRecibido(v){
   CART.recibido = Math.max(0, parseFloat(v)||0);
-  renderCobro();
-  const e = g('efeInput'); if(e && document.activeElement!==e) e.value = CART.recibido||'';
+  actualizarVuelto();
+}
+// Los botones de billete sí escriben en el campo.
+function ponerEfectivo(x){
+  CART.recibido = x;
+  const e = g('efeInput'); if(e) e.value = x;
+  actualizarVuelto();
+}
+function actualizarVuelto(){
+  const box = g('vueltoBox'); if(!box) return;
+  const t = totalesCart(), v = CART.recibido - t.total;
+  box.innerHTML = CART.recibido
+    ? `<div class="change ${v>=0?'ok':'no'}"><span>${v>=0?'Vuelto':'Falta'}</span><b class="num">${money(Math.abs(v))}</b></div>`
+    : '';
+  const btn = g('cobroAccion');
+  if(btn) btn.disabled = CART.recibido>0 && CART.recibido < t.total;
 }
 // Simula el diálogo con el terminal de tarjeta.
 function enviarAlPos(){
