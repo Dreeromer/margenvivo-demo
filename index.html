@@ -124,6 +124,7 @@
   .qbox .qn{font-size:20px;font-weight:800;margin:2px 0 3px}
   .qbox .qd{font-size:11.5px;color:var(--muted);line-height:1.35}
   .dim{color:var(--muted)}
+  #rotAbc .bar-row{grid-template-columns:124px 1fr auto}   /* «B · lo intermedio» no entra en 96px */
   .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
   @media(max-width:760px){.panels{grid-template-columns:1fr}}
   .bars{display:flex;flex-direction:column;gap:11px;margin-top:14px}
@@ -1505,10 +1506,10 @@ function renderRotacion(){
   // matriz margen × rotación
   const {q,mr,mm} = matrizOf(rows);
   const CUAD=[
-    {k:'estrella',t:'⭐ Estrellas',d:'Rotan y dejan margen. Nunca deben faltar.',c:'var(--good)'},
-    {k:'volumen', t:'🔁 Volumen',  d:'Rotan pero dejan poco. Cuidado con el precio: aquí se escapa la utilidad.',c:'var(--warn)'},
-    {k:'joya',    t:'💎 Joyas dormidas',d:'Dejan buen margen pero casi no se venden. Vale la pena empujarlos.',c:'var(--primary)'},
-    {k:'lastre',  t:'🪨 Lastre',   d:'Ni rotan ni dejan. Candidatos a dejar de comprar.',c:'var(--bad)'},
+    {k:'estrella',t:'★ Estrellas', d:'Rotan y dejan margen. Nunca deben faltar.',c:'var(--good)'},
+    {k:'volumen', t:'⟳ Volumen',   d:'Rotan pero dejan poco. Cuidado con el precio: aquí se escapa la utilidad.',c:'var(--warn)'},
+    {k:'joya',    t:'◆ Joyas dormidas',d:'Dejan buen margen pero casi no se venden. Vale la pena empujarlos.',c:'var(--primary)'},
+    {k:'lastre',  t:'▼ Lastre',    d:'Ni rotan ni dejan. Candidatos a dejar de comprar.',c:'var(--bad)'},
   ];
   document.getElementById('rotMatrix').innerHTML = CUAD.map(c=>{
     const arr=q[c.k], ej=arr.slice(0,3).map(r=>esc(r.nombre)).join(' · ');
