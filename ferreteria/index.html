@@ -1359,11 +1359,26 @@ function cargar(){
     const c = localStorage.getItem(K_CAT), v = localStorage.getItem(K_VENTAS);
     if(!c || !v) { sembrar(); return; }
     PRODUCTS = JSON.parse(c); VENTAS = JSON.parse(v); rebuildIndex();
+    migrar();
     const g = localStorage.getItem(K_CFG); if(g) CFG = Object.assign(JSON.parse(JSON.stringify(DEFAULT_CFG)), JSON.parse(g));
     const a = localStorage.getItem(K_ABONOS); ABONOS = a ? JSON.parse(a) : [];
     const s = localStorage.getItem(K_SEQ); SEQ = s ? Number(s) : 1000;
     const cl = localStorage.getItem(K_CLI); CLIENTES = cl ? JSON.parse(cl) : buildClientes();
   }catch(e){ console.error('cargar', e); sembrar(); }
+}
+// Los datos guardados por una versión anterior no traen todos los campos.
+// Se completan al cargar para que quien ya abrió la demo no vea pantallas vacías.
+function migrar(){
+  let tocado = false;
+  PRODUCTS.forEach(p=>{ if(!p.marca){ p.marca = marcaDe(p.nombre, p.tipo); tocado = true; } });
+  if(tocado) saveCat();
+  let tocadoV = false;
+  VENTAS.forEach(v=>{
+    if(!v.marca){ const p = BY_SKU[v.sku];
+      v.marca = (p && p.marca) || marcaDe(v.producto||'', v.tipo); tocadoV = true; }
+    if(v.clienteId === undefined){ v.clienteId = ''; tocadoV = true; }
+  });
+  if(tocadoV) saveVentas();
 }
 function reiniciarDemo(){
   [K_VENTAS,K_CAT,K_CFG,K_ABONOS,K_SEQ,K_CLI].forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
