@@ -1,0 +1,99 @@
+<div class="top">
+  <div class="top-in">
+    <span class="mk">M</span>
+    <span class="brand">Margen<em>Vivo</em><small>Analizador de ventas</small></span>
+    <span style="margin-left:auto"><button class="btn sm ghost hidden" id="btnOtro" onclick="reiniciar()">Analizar otro archivo</button></span>
+  </div>
+  <div class="rule"></div>
+</div>
+
+<div class="wrap">
+  <!-- ESTADO 1: sin archivo -->
+  <div id="vacio">
+    <p class="eyebrow">Nada se sube a internet</p>
+    <h1>Veamos qué dice tu Excel de ventas</h1>
+    <p class="sub" style="max-width:64ch">Suelta el archivo y en segundos verás dónde se concentra tu venta, qué productos mandan y qué clientes te sostienen. El archivo se lee en esta misma pantalla: no viaja a ningún servidor.</p>
+
+    <div class="drop" id="drop" style="margin-top:22px" onclick="document.getElementById('file').click()">
+      <div class="ic">📊</div>
+      <h2>Suelta aquí tu Excel</h2>
+      <p>o haz clic para buscarlo en tu computadora</p>
+      <div class="fmt"><span class="tag">.xlsx</span><span class="tag">.csv</span><span class="tag">varias hojas</span><span class="tag">hecho a mano</span></div>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.csv,.txt" class="hidden" onchange="elegido(this.files)">
+
+    <div class="card" style="margin-top:22px">
+      <div class="card-h"><h2>Qué hace con un archivo desordenado</h2></div>
+      <div class="paso"><i>1</i><div><b>Encuentra la tabla.</b> Aunque haya títulos, logos o filas sueltas arriba, y aunque el archivo tenga muchas hojas.</div></div>
+      <div class="paso"><i>2</i><div><b>Adivina qué es cada columna.</b> Da igual si le pusiste DESCRIPCIÓN, PRODUCTO o DETALLE. Si se equivoca, lo corriges con un clic.</div></div>
+      <div class="paso"><i>3</i><div><b>Arrastra los datos hacia abajo.</b> Si la fecha y el cliente están solo en la primera fila de cada venta, completa el resto — así ninguna línea se queda sin dueño.</div></div>
+      <div class="paso"><i>4</i><div><b>Junta lo que está escrito distinto.</b> Une lo que es evidente y te pregunta por lo dudoso, porque «C.D.» y «C.G.» se parecen mucho y no son lo mismo.</div></div>
+      <div class="paso"><i>5</i><div><b>Descarta lo que no es venta.</b> Totales, subtotales, encabezados repetidos y filas vacías.</div></div>
+    </div>
+  </div>
+
+  <!-- ESTADO 2: leyendo -->
+  <div id="cargando" class="hidden" style="padding:70px 0;text-align:center">
+    <div class="spin"></div>
+    <p class="sub" id="cargandoTxt" style="margin-top:16px">Leyendo el archivo…</p>
+  </div>
+
+  <!-- ESTADO 3: resultado -->
+  <div id="listo" class="hidden">
+    <p class="eyebrow" id="resArchivo"></p>
+    <h1 id="resTitulo">Esto dice tu archivo</h1>
+    <p class="sub" id="resSub"></p>
+
+    <div class="kpis" id="resKpis" style="margin-top:20px"></div>
+    <div id="resAvisos"></div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-h"><h2>Cómo entendí tu archivo</h2>
+        <span class="tag" id="mapHojas"></span>
+        <button class="btn sm" style="margin-left:auto" onclick="toggleMapa()" id="btnMapa">Corregir columnas</button></div>
+      <div id="mapaResumen" class="sub" style="font-size:12.5px;margin:0"></div>
+      <div id="mapa" class="hidden" style="margin-top:14px">
+        <div class="map" id="mapCampos"></div>
+        <button class="btn primary sm" style="margin-top:12px" onclick="reAnalizar()">Volver a analizar</button>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="card">
+        <div class="card-h"><h2>Dónde se concentra la venta</h2>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn sm" id="agProd" onclick="setAgrup('producto')">Producto</button>
+            <button class="btn sm" id="agCat" onclick="setAgrup('cat')">Rubro</button>
+            <button class="btn sm" id="agCli" onclick="setAgrup('cliente')">Cliente</button>
+          </div></div>
+        <p class="sub" style="font-size:12.5px;margin:0 0 12px" id="parNota"></p>
+        <div id="parBody"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Lo que más se mueve</h2><span class="tag">por semana</span></div>
+        <div class="tbl" style="max-height:none;border:none">
+          <table><thead><tr><th>Producto</th><th>Por semana</th><th>Venta</th><th>ABC</th></tr></thead>
+          <tbody id="rotBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px" id="cardDudas">
+      <div class="card-h"><h2>Nombres que conviene revisar</h2>
+        <span class="tag" id="dudTag"></span></div>
+      <p class="sub" style="font-size:12.5px;margin:0 0 10px">Se parecen mucho pero no los uní solos, porque podrían ser productos distintos. Esto es lo que en la instalación se resuelve una vez y nunca más.</p>
+      <div id="dudBody"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-h"><h2>Todas las líneas leídas</h2>
+        <span class="tag" id="lineTag"></span>
+        <button class="btn sm" style="margin-left:auto" onclick="exportarLimpio()">Descargar limpio (CSV)</button></div>
+      <div class="tbl">
+        <table><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Venta</th><th>Cliente</th><th>Fecha</th><th>Hoja</th></tr></thead>
+        <tbody id="lineBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="foot" id="pie">MargenVivo · el archivo se procesa en tu propio navegador</div>
