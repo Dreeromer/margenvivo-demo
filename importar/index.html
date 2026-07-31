@@ -704,7 +704,12 @@ function analizar(lineas){
 const g = id => document.getElementById(id);
 const S_ = n => 'S/ ' + Math.round(Number(n)||0).toLocaleString('es-PE');
 const S2 = n => 'S/ ' + (Number(n)||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
-const kS = n => Math.abs(n)>=1000 ? 'S/ '+(n/1000).toFixed(n>=10000?0:1)+'k' : S_(n);
+const kS = n => {
+  const a = Math.abs(n);
+  if(a >= 1e6) return 'S/ ' + (n/1e6).toFixed(a>=1e7?1:2) + ' M';
+  if(a >= 1000) return 'S/ ' + (n/1000).toFixed(a>=1e4?0:1) + 'k';
+  return S_(n);
+};
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const nUn = n => Math.abs(n)>=10 ? Math.round(n).toLocaleString('es-PE') : (Math.round(n*10)/10).toString().replace('.',',');
 const fecha = ts => ts ? new Date(ts).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'}) : '—';
